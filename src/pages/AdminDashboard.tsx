@@ -456,7 +456,7 @@ export const AdminDashboard: React.FC = () => {
       {/* Order Details Modal (View orders with images) */}
       {selectedOrder && (
         <div className="admin-modal-overlay" onClick={() => setSelectedOrder(null)}>
-          <div className="admin-modal-container card animate-modal-enter" onClick={(e) => e.stopPropagation()}>
+          <div className="admin-modal-container card animate-admin-modal-enter" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header border-b pb-3 mb-3">
               <div>
                 <span className="text-xs text-muted">Order ID: {selectedOrder.id}</span>
@@ -566,7 +566,7 @@ export const AdminDashboard: React.FC = () => {
       {/* Kigali Transit Route Map Simulator Modal (Unique Premium Feature) */}
       {showRiderMapOrder && (
         <div className="admin-modal-overlay" onClick={() => setShowRiderMapOrder(null)}>
-          <div className="admin-modal-container map-simulator-modal card animate-modal-enter" onClick={(e) => e.stopPropagation()}>
+          <div className="admin-modal-container map-simulator-modal card animate-admin-modal-enter" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header border-b pb-3 mb-3">
               <div>
                 <h3>Transit Route Simulator</h3>
