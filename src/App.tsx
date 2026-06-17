@@ -12,6 +12,10 @@ import { OrderTracking } from './pages/OrderTracking';
 import { AdminLogin } from './pages/AdminLogin';
 import { AdminSignup } from './pages/AdminSignup';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { ChefLogin } from './pages/ChefLogin';
+import { ChefDashboard } from './pages/ChefDashboard';
+import { RiderLogin } from './pages/RiderLogin';
+import { RiderDashboard } from './pages/RiderDashboard';
 
 function App() {
   return (
@@ -31,6 +35,10 @@ function App() {
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/signup" element={<AdminSignup />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/chef/login" element={<ChefLogin />} />
+              <Route path="/chef/dashboard" element={<ChefDashboard />} />
+              <Route path="/rider/login" element={<RiderLogin />} />
+              <Route path="/rider/dashboard" element={<RiderDashboard />} />
             </Routes>
           </main>
           <Footer />

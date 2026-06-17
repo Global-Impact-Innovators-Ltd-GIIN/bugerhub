@@ -40,9 +40,11 @@ export const Header: React.FC = () => {
             <Link to="/deals" className={`nav-link ${isActive('/deals')}`}>Deals</Link>
             <Link to="/about" className={`nav-link ${isActive('/about')}`}>About</Link>
             <Link to="/contact" className={`nav-link ${isActive('/contact')}`}>Contact</Link>
-            <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard')}`}>Admin Portal</Link>
+            <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard')}`}>Admin</Link>
+            <Link to="/chef/dashboard" className={`nav-link ${isActive('/chef/dashboard')}`}>Chef</Link>
+            <Link to="/rider/dashboard" className={`nav-link ${isActive('/rider/dashboard')}`}>Rider</Link>
           </nav>
-
+          
           {/* Actions */}
           <div className="header-actions">
             <button className="cart-trigger-btn" onClick={toggleCart} aria-label="Open Cart">
@@ -56,7 +58,7 @@ export const Header: React.FC = () => {
             </button>
           </div>
         </div>
-
+ 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <nav className="nav-mobile">
@@ -66,6 +68,8 @@ export const Header: React.FC = () => {
             <Link to="/about" className={`nav-link ${isActive('/about')}`} onClick={toggleMobileMenu}>About</Link>
             <Link to="/contact" className={`nav-link ${isActive('/contact')}`} onClick={toggleMobileMenu}>Contact</Link>
             <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard')}`} onClick={toggleMobileMenu}>Admin Portal</Link>
+            <Link to="/chef/dashboard" className={`nav-link ${isActive('/chef/dashboard')}`} onClick={toggleMobileMenu}>Chef Portal</Link>
+            <Link to="/rider/dashboard" className={`nav-link ${isActive('/rider/dashboard')}`} onClick={toggleMobileMenu}>Rider Portal</Link>
             <Link to="/menu" className="btn btn-primary mobile-order-btn" onClick={toggleMobileMenu}>ORDER NOW</Link>
           </nav>
         )}

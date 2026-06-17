@@ -12,6 +12,8 @@ import '../styles/pages/AdminDashboard.css';
 interface Staff {
   id: string;
   name: string;
+  email: string;
+  password?: string;
   role: 'chef' | 'rider';
   status: 'idle' | 'busy';
   assignedOrderId?: string;
@@ -28,7 +30,31 @@ export const AdminDashboard: React.FC = () => {
   
   // Input states for new staff
   const [newChefName, setNewChefName] = useState('');
+  const [newChefEmail, setNewChefEmail] = useState('');
+  const [newChefPassword, setNewChefPassword] = useState('');
+
   const [newRiderName, setNewRiderName] = useState('');
+  const [newRiderEmail, setNewRiderEmail] = useState('');
+  const [newRiderPassword, setNewRiderPassword] = useState('');
+
+  // Menu and Categories states
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'orders' | 'menu'>('orders');
+
+  // Input states for new category
+  const [newCatId, setNewCatId] = useState('');
+  const [newCatLabel, setNewCatLabel] = useState('');
+
+  // Input states for new item
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemDesc, setNewItemDesc] = useState('');
+  const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState('');
+  const [newItemImage, setNewItemImage] = useState('');
+  const [newItemPresetImage, setNewItemPresetImage] = useState('/images/hero_burger.png');
   
   // UI helper states
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -51,9 +77,9 @@ export const AdminDashboard: React.FC = () => {
       setChefs(JSON.parse(savedChefs));
     } else {
       const defaultChefs: Staff[] = [
-        { id: 'C1', name: 'Chef Kwizera', role: 'chef', status: 'idle' },
-        { id: 'C2', name: 'Chef Mutoni', role: 'chef', status: 'busy', assignedOrderId: 'BH-582910' },
-        { id: 'C3', name: 'Chef Gakire', role: 'chef', status: 'idle' }
+        { id: 'C1', name: 'Chef Kwizera', email: 'chef1@burgerhub.com', password: 'chef123', role: 'chef', status: 'idle' },
+        { id: 'C2', name: 'Chef Mutoni', email: 'chef2@burgerhub.com', password: 'chef123', role: 'chef', status: 'busy', assignedOrderId: 'BH-582910' },
+        { id: 'C3', name: 'Chef Gakire', email: 'chef3@burgerhub.com', password: 'chef123', role: 'chef', status: 'idle' }
       ];
       setChefs(defaultChefs);
       localStorage.setItem('burgerhub_chefs', JSON.stringify(defaultChefs));
@@ -64,12 +90,125 @@ export const AdminDashboard: React.FC = () => {
       setRiders(JSON.parse(savedRiders));
     } else {
       const defaultRiders: Staff[] = [
-        { id: 'R1', name: 'Rider Jean', role: 'rider', status: 'busy', assignedOrderId: 'BH-248910' },
-        { id: 'R2', name: 'Rider Claude', role: 'rider', status: 'idle' },
-        { id: 'R3', name: 'Rider Diane', role: 'rider', status: 'idle' }
+        { id: 'R1', name: 'Rider Jean', email: 'rider1@burgerhub.com', password: 'rider123', role: 'rider', status: 'busy', assignedOrderId: 'BH-248910' },
+        { id: 'R2', name: 'Rider Claude', email: 'rider2@burgerhub.com', password: 'rider123', role: 'rider', status: 'idle' },
+        { id: 'R3', name: 'Rider Diane', email: 'rider3@burgerhub.com', password: 'rider123', role: 'rider', status: 'idle' }
       ];
       setRiders(defaultRiders);
       localStorage.setItem('burgerhub_riders', JSON.stringify(defaultRiders));
+    }
+
+    // Seed/Load categories & menu items
+    const savedCategories = localStorage.getItem('burgerhub_menu_categories');
+    let cats = [];
+    if (savedCategories) {
+      cats = JSON.parse(savedCategories);
+    } else {
+      cats = [
+        { id: 'all', label: 'All Items' },
+        { id: 'burgers', label: 'Signature Burgers' },
+        { id: 'meals', label: 'Family Meals' },
+        { id: 'sides', label: 'Sides & Drinks' },
+        { id: 'desserts', label: 'Desserts' }
+      ];
+      localStorage.setItem('burgerhub_menu_categories', JSON.stringify(cats));
+    }
+    setCategories(cats);
+
+    const savedItems = localStorage.getItem('burgerhub_menu_items');
+    let items = [];
+    if (savedItems) {
+      items = JSON.parse(savedItems);
+    } else {
+      items = [
+        {
+          id: 'triple-threat',
+          name: 'Triple Threat Burger',
+          description: 'Three juicy beef patties, triple cheddar cheese, smoked bacon, special sauce, brioche bun.',
+          price: 18.99,
+          category: 'burgers',
+          image: '/images/triple_threat_burger.png'
+        },
+        {
+          id: 'spicy-chicken',
+          name: 'Spicy Chicken Deluxe',
+          description: 'Spicy crispy fried chicken, creamy coleslaw, dill pickle slices, chipotle mayo, brioche bun.',
+          price: 14.99,
+          category: 'burgers',
+          image: '/images/spicy_chicken_deluxe.png'
+        },
+        {
+          id: 'classic-cheeseburger',
+          name: 'Classic Cheeseburger',
+          description: 'Flame-grilled beef patty, melted cheddar, crisp lettuce, tomato, pickles, and our signature sauce.',
+          price: 12.99,
+          category: 'burgers',
+          image: '/images/hero_burger.png'
+        },
+        {
+          id: 'bacon-avocado',
+          name: 'Bacon Avocado Burger',
+          description: 'Flame-grilled beef patty, smoked bacon, fresh avocado slices, Swiss cheese, and garlic aioli.',
+          price: 15.99,
+          category: 'burgers',
+          image: '/images/triple_threat_burger.png'
+        },
+        {
+          id: 'animal-fries',
+          name: 'Loaded Animal Fries',
+          description: 'Crispy golden french fries topped with melted cheese, caramelized grilled onions, and thousand island sauce.',
+          price: 9.99,
+          category: 'sides',
+          image: '/images/loaded_animal_fries.png'
+        },
+        {
+          id: 'sweet-potato-fries',
+          name: 'Sweet Potato Fries',
+          description: 'Crispy sweet potato fries lightly salted, served with a side of maple dipping sauce.',
+          price: 6.99,
+          category: 'sides',
+          image: '/images/loaded_animal_fries.png'
+        },
+        {
+          id: 'double-stack-meal',
+          name: 'Double Stack Combo Deal',
+          description: 'Double Cheeseburger, Loaded Animal Fries, and a large draft soda. The ultimate meal.',
+          price: 24.99,
+          category: 'meals',
+          image: '/images/hero_burger.png'
+        },
+        {
+          id: 'draft-soda',
+          name: 'Draft Soda',
+          description: 'Refreshing carbonated beverages poured fresh over ice. Choice of Coca Cola, Sprite, or Fanta.',
+          price: 3.49,
+          category: 'drinks',
+          image: '/images/loaded_animal_fries.png'
+        },
+        {
+          id: 'milkshake',
+          name: 'Classic Milkshake',
+          description: 'Thick, creamy milkshake made with real vanilla ice cream. Whipped cream and cherry on top.',
+          price: 5.99,
+          category: 'desserts',
+          image: '/images/spicy_chicken_deluxe.png'
+        },
+        {
+          id: 'chocolate-brownie',
+          name: 'Warm Chocolate Brownie',
+          description: 'Warm fudge chocolate brownie topped with chocolate drizzle, served with vanilla ice cream.',
+          price: 7.99,
+          category: 'desserts',
+          image: '/images/triple_threat_burger.png'
+        }
+      ];
+      localStorage.setItem('burgerhub_menu_items', JSON.stringify(items));
+    }
+    setMenuItems(items);
+    
+    // Set default category selection
+    if (cats.length > 0) {
+      setNewItemCategory(cats[0].id === 'all' ? (cats[1]?.id || 'burgers') : cats[0].id);
     }
   }, [navigate]);
 
@@ -87,28 +226,115 @@ export const AdminDashboard: React.FC = () => {
   // Staff management triggers
   const handleAddChef = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newChefName.trim()) return;
+    if (!newChefName.trim() || !newChefEmail.trim() || !newChefPassword.trim()) return;
+
+    if (chefs.some(c => c.email.toLowerCase() === newChefEmail.trim().toLowerCase())) {
+      alert('This chef email is already registered!');
+      return;
+    }
+
     const newChef: Staff = {
       id: 'C' + Math.floor(100 + Math.random() * 900),
       name: newChefName.trim(),
+      email: newChefEmail.trim(),
+      password: newChefPassword.trim(),
       role: 'chef',
       status: 'idle'
     };
     updateChefsInStorage([...chefs, newChef]);
     setNewChefName('');
+    setNewChefEmail('');
+    setNewChefPassword('');
   };
 
   const handleAddRider = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRiderName.trim()) return;
+    if (!newRiderName.trim() || !newRiderEmail.trim() || !newRiderPassword.trim()) return;
+
+    if (riders.some(r => r.email.toLowerCase() === newRiderEmail.trim().toLowerCase())) {
+      alert('This rider email is already registered!');
+      return;
+    }
+
     const newRider: Staff = {
       id: 'R' + Math.floor(100 + Math.random() * 900),
       name: newRiderName.trim(),
+      email: newRiderEmail.trim(),
+      password: newRiderPassword.trim(),
       role: 'rider',
       status: 'idle'
     };
     updateRidersInStorage([...riders, newRider]);
     setNewRiderName('');
+    setNewRiderEmail('');
+    setNewRiderPassword('');
+  };
+
+  const handleAddCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatId.trim() || !newCatLabel.trim()) return;
+    
+    const cid = newCatId.trim().toLowerCase().replace(/\s+/g, '-');
+    if (categories.some(c => c.id === cid)) {
+      alert('Category ID already exists!');
+      return;
+    }
+
+    const updated = [...categories, { id: cid, label: newCatLabel.trim() }];
+    setCategories(updated);
+    localStorage.setItem('burgerhub_menu_categories', JSON.stringify(updated));
+    setNewCatId('');
+    setNewCatLabel('');
+  };
+
+  const handleRemoveCategory = (catId: string) => {
+    if (catId === 'all') {
+      alert('Cannot delete "All Items" category!');
+      return;
+    }
+    if (confirm('Are you sure you want to delete this category? Items under this category will not be deleted but they will not belong to a valid category.')) {
+      const updated = categories.filter(c => c.id !== catId);
+      setCategories(updated);
+      localStorage.setItem('burgerhub_menu_categories', JSON.stringify(updated));
+    }
+  };
+
+  const handleAddMenuItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItemName.trim() || !newItemPrice || !newItemCategory) return;
+
+    const priceNum = parseFloat(newItemPrice);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      alert('Please enter a valid price!');
+      return;
+    }
+
+    const finalImage = newItemImage.trim() || newItemPresetImage;
+    const newItem = {
+      id: newItemName.trim().toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(100 + Math.random() * 900),
+      name: newItemName.trim(),
+      description: newItemDesc.trim(),
+      price: priceNum,
+      category: newItemCategory,
+      image: finalImage
+    };
+
+    const updated = [...menuItems, newItem];
+    setMenuItems(updated);
+    localStorage.setItem('burgerhub_menu_items', JSON.stringify(updated));
+
+    setNewItemName('');
+    setNewItemDesc('');
+    setNewItemPrice('');
+    setNewItemImage('');
+  };
+
+  const handleRemoveMenuItem = (itemId: string) => {
+    if (confirm('Are you sure you want to delete this menu item?')) {
+      const updated = menuItems.filter(item => item.id !== itemId);
+      setMenuItems(updated);
+      localStorage.setItem('burgerhub_menu_items', JSON.stringify(updated));
+    }
   };
 
   const toggleStaffStatus = (id: string, role: 'chef' | 'rider') => {
@@ -220,237 +446,578 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="container main-admin-container mt-5">
-        {/* Stats Row Widgets */}
-        <div className="admin-stats-grid">
-          <div className="stat-card card">
-            <div className="stat-icon-box bg-orange-dim">
-              <TrendingUp className="color-orange" size={20} />
-            </div>
-            <div className="stat-details">
-              <span className="stat-title">Total Revenue</span>
-              <h3>{totalRevenueRWF.toLocaleString()} RWF</h3>
-              <p className="stat-subtitle">${totalRevenueUSD.toFixed(2)} USD Equivalent</p>
-            </div>
-          </div>
-
-          <div className="stat-card card">
-            <div className="stat-icon-box bg-red-dim">
-              <ShoppingBag className="color-red" size={20} />
-            </div>
-            <div className="stat-details">
-              <span className="stat-title">Active Logged Orders</span>
-              <h3>{activeOrdersCount} Orders</h3>
-              <p className="stat-subtitle">{orders.length} total orders history</p>
-            </div>
-          </div>
-
-          <div className="stat-card card">
-            <div className="stat-icon-box bg-white-dim">
-              <ChefHat className="color-white" size={20} />
-            </div>
-            <div className="stat-details">
-              <span className="stat-title">Kitchen Crew</span>
-              <h3>{chefs.length - busyChefsCount} / {chefs.length} Idle</h3>
-              <p className="stat-subtitle">{busyChefsCount} chefs actively cooking</p>
-            </div>
-          </div>
-
-          <div className="stat-card card">
-            <div className="stat-icon-box bg-blue-dim">
-              <Truck className="color-blue" size={20} />
-            </div>
-            <div className="stat-details">
-              <span className="stat-title">Riders Courier Fleet</span>
-              <h3>{riders.length - busyRidersCount} / {riders.length} Idle</h3>
-              <p className="stat-subtitle">{busyRidersCount} riders in transit</p>
-            </div>
-          </div>
+      {/* Sub Header / Tabs Navigation */}
+      <div className="container mt-4">
+        <div className="admin-tab-bar" style={{ display: 'flex', gap: '15px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
+          <button 
+            className={`admin-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+            onClick={() => setActiveTab('orders')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: activeTab === 'orders' ? 'var(--primary)' : 'var(--text-secondary)',
+              fontSize: '16px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: '10px 20px',
+              borderBottom: activeTab === 'orders' ? '2px solid var(--primary)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            Live Orders & Staff
+          </button>
+          <button 
+            className={`admin-tab-btn ${activeTab === 'menu' ? 'active' : ''}`}
+            onClick={() => setActiveTab('menu')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: activeTab === 'menu' ? 'var(--primary)' : 'var(--text-secondary)',
+              fontSize: '16px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: '10px 20px',
+              borderBottom: activeTab === 'menu' ? '2px solid var(--primary)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            Menu & Category Manager
+          </button>
         </div>
+      </div>
 
-        {/* Live Kanban Board */}
-        <div className="kanban-section mt-5">
-          <h3 className="section-title text-gradient">Live Kitchen Queue monitor</h3>
-          
-          <div className="kanban-grid mt-4">
-            {columns.map(col => {
-              const colOrders = orders.filter(o => o.status === col.status);
-              const ColIcon = col.icon;
-              return (
-                <div className={`kanban-column card ${col.colorClass}`} key={col.status}>
-                  <div className="kanban-column-header">
-                    <ColIcon size={18} className="column-icon" />
-                    <h4>{col.title}</h4>
-                    <span className="kanban-count-badge">{colOrders.length}</span>
+      <div className="container main-admin-container mt-4">
+        {activeTab === 'orders' && (
+          <>
+            {/* Stats Row Widgets */}
+            <div className="admin-stats-grid">
+              <div className="stat-card card">
+                <div className="stat-icon-box bg-orange-dim">
+                  <TrendingUp className="color-orange" size={20} />
+                </div>
+                <div className="stat-details">
+                  <span className="stat-title">Total Revenue</span>
+                  <h3>{totalRevenueRWF.toLocaleString()} RWF</h3>
+                  <p className="stat-subtitle">${totalRevenueUSD.toFixed(2)} USD Equivalent</p>
+                </div>
+              </div>
+
+              <div className="stat-card card">
+                <div className="stat-icon-box bg-red-dim">
+                  <ShoppingBag className="color-red" size={20} />
+                </div>
+                <div className="stat-details">
+                  <span className="stat-title">Active Logged Orders</span>
+                  <h3>{activeOrdersCount} Orders</h3>
+                  <p className="stat-subtitle">{orders.length} total orders history</p>
+                </div>
+              </div>
+
+              <div className="stat-card card">
+                <div className="stat-icon-box bg-white-dim">
+                  <ChefHat className="color-white" size={20} />
+                </div>
+                <div className="stat-details">
+                  <span className="stat-title">Kitchen Crew</span>
+                  <h3>{chefs.length - busyChefsCount} / {chefs.length} Idle</h3>
+                  <p className="stat-subtitle">{busyChefsCount} chefs actively cooking</p>
+                </div>
+              </div>
+
+              <div className="stat-card card">
+                <div className="stat-icon-box bg-blue-dim">
+                  <Truck className="color-blue" size={20} />
+                </div>
+                <div className="stat-details">
+                  <span className="stat-title">Riders Courier Fleet</span>
+                  <h3>{riders.length - busyRidersCount} / {riders.length} Idle</h3>
+                  <p className="stat-subtitle">{busyRidersCount} riders in transit</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Kanban Board */}
+            <div className="kanban-section mt-5">
+              <h3 className="section-title text-gradient">Live Kitchen Queue monitor</h3>
+              
+              <div className="kanban-grid mt-4">
+                {columns.map(col => {
+                  const colOrders = orders.filter(o => o.status === col.status);
+                  const ColIcon = col.icon;
+                  return (
+                    <div className={`kanban-column card ${col.colorClass}`} key={col.status}>
+                      <div className="kanban-column-header">
+                        <ColIcon size={18} className="column-icon" />
+                        <h4>{col.title}</h4>
+                        <span className="kanban-count-badge">{colOrders.length}</span>
+                      </div>
+
+                      <div className="kanban-cards-wrapper mt-3">
+                        {colOrders.length === 0 ? (
+                          <div className="empty-column-placeholder">
+                            <Clock size={28} className="muted-icon" />
+                            <p>No orders in queue</p>
+                          </div>
+                        ) : (
+                          colOrders.map(order => (
+                            <div className="kanban-order-card" key={order.id}>
+                              <div className="kanban-card-top">
+                                <span className="order-id">{order.id}</span>
+                                <span className="order-time">{order.date.split(',')[1]?.trim() || order.date}</span>
+                              </div>
+                              
+                              <div className="kanban-card-body mt-2">
+                                <strong>{order.details.name}</strong>
+                                <p className="text-truncate">{order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</p>
+                              </div>
+
+                              <div className="kanban-card-footer mt-3 border-t pt-2">
+                                <button 
+                                  onClick={() => setSelectedOrder(order)}
+                                  className="btn-link icon-btn"
+                                  title="View Order Details"
+                                >
+                                  <Eye size={16} /> Details
+                                </button>
+                                
+                                {order.status !== 'delivered' && (
+                                  <button 
+                                    onClick={() => handleStatusTransition(order.id, order.status)}
+                                    className="btn btn-primary next-status-btn"
+                                  >
+                                    {order.status === 'preparing' && 'Cook Patty'}
+                                    {order.status === 'cooking' && 'Dispatch'}
+                                    {order.status === 'delivering' && 'Arrived'} <ChevronRight size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Staff Management Grids */}
+            <div className="staff-management-section mt-5 pt-3">
+              <div className="staff-layout-grid">
+                
+                {/* Chef Management Card */}
+                <div className="staff-management-card card">
+                  <div className="staff-card-header mb-3">
+                    <ChefHat className="color-orange" size={22} />
+                    <h4>Manage Kitchen Chefs</h4>
                   </div>
 
-                  <div className="kanban-cards-wrapper mt-3">
-                    {colOrders.length === 0 ? (
-                      <div className="empty-column-placeholder">
-                        <Clock size={28} className="muted-icon" />
-                        <p>No orders in queue</p>
-                      </div>
-                    ) : (
-                      colOrders.map(order => (
-                        <div className="kanban-order-card" key={order.id}>
-                          <div className="kanban-card-top">
-                            <span className="order-id">{order.id}</span>
-                            <span className="order-time">{order.date.split(',')[1]?.trim() || order.date}</span>
-                          </div>
-                          
-                          <div className="kanban-card-body mt-2">
-                            <strong>{order.details.name}</strong>
-                            <p className="text-truncate">{order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</p>
-                          </div>
+                  <form onSubmit={handleAddChef} className="add-staff-form mb-4" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Chef's Name..."
+                        className="form-input text-sm"
+                        value={newChefName}
+                        onChange={(e) => setNewChefName(e.target.value)}
+                        required
+                      />
+                      <input 
+                        type="email" 
+                        placeholder="Email..."
+                        className="form-input text-sm"
+                        value={newChefEmail}
+                        onChange={(e) => setNewChefEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px' }}>
+                      <input 
+                        type="password" 
+                        placeholder="Password..."
+                        className="form-input text-sm"
+                        value={newChefPassword}
+                        onChange={(e) => setNewChefPassword(e.target.value)}
+                        required
+                      />
+                      <button type="submit" className="btn btn-primary add-staff-btn" style={{ whiteSpace: 'nowrap' }}>
+                        <Plus size={16} /> Add Chef
+                      </button>
+                    </div>
+                  </form>
 
-                          <div className="kanban-card-footer mt-3 border-t pt-2">
+                  <div className="staff-list">
+                    {chefs.length === 0 ? (
+                      <p className="text-center text-sm text-muted">No chefs registered.</p>
+                    ) : (
+                      chefs.map(chef => (
+                        <div className="staff-item" key={chef.id}>
+                          <div className="staff-details">
+                            <span className="staff-id">{chef.id}</span>
+                            <div>
+                              <strong>{chef.name}</strong>
+                              <span className="text-xs text-muted" style={{ display: 'block', opacity: 0.7 }}>{chef.email}</span>
+                              {chef.assignedOrderId && (
+                                <span className="assigned-tag">Cooking: {chef.assignedOrderId}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="staff-actions">
                             <button 
-                              onClick={() => setSelectedOrder(order)}
-                              className="btn-link icon-btn"
-                              title="View Order Details"
+                              onClick={() => toggleStaffStatus(chef.id, 'chef')}
+                              className={`status-pill ${chef.status === 'idle' ? 'idle' : 'busy'}`}
                             >
-                              <Eye size={16} /> Details
+                              {chef.status.toUpperCase()}
                             </button>
-                            
-                            {order.status !== 'delivered' && (
-                              <button 
-                                onClick={() => handleStatusTransition(order.id, order.status)}
-                                className="btn btn-primary next-status-btn"
-                              >
-                                {order.status === 'preparing' && 'Cook Patty'}
-                                {order.status === 'cooking' && 'Dispatch'}
-                                {order.status === 'delivering' && 'Arrived'} <ChevronRight size={14} />
-                              </button>
-                            )}
+                            <button 
+                              onClick={() => handleRemoveStaff(chef.id, 'chef')}
+                              className="btn-remove"
+                            >
+                              <X size={14} />
+                            </button>
                           </div>
                         </div>
                       ))
                     )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Staff Management Grids */}
-        <div className="staff-management-section mt-5 pt-3">
-          <div className="staff-layout-grid">
-            
-            {/* Chef Management Card */}
-            <div className="staff-management-card card">
-              <div className="staff-card-header mb-3">
-                <ChefHat className="color-orange" size={22} />
-                <h4>Manage Kitchen Chefs</h4>
+                {/* Rider Management Card */}
+                <div className="staff-management-card card">
+                  <div className="staff-card-header mb-3">
+                    <Bike className="color-blue" size={22} />
+                    <h4>Manage Courier Riders</h4>
+                  </div>
+
+                  <form onSubmit={handleAddRider} className="add-staff-form mb-4" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Rider's Name..."
+                        className="form-input text-sm"
+                        value={newRiderName}
+                        onChange={(e) => setNewRiderName(e.target.value)}
+                        required
+                      />
+                      <input 
+                        type="email" 
+                        placeholder="Email..."
+                        className="form-input text-sm"
+                        value={newRiderEmail}
+                        onChange={(e) => setNewRiderEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px' }}>
+                      <input 
+                        type="password" 
+                        placeholder="Password..."
+                        className="form-input text-sm"
+                        value={newRiderPassword}
+                        onChange={(e) => setNewRiderPassword(e.target.value)}
+                        required
+                      />
+                      <button type="submit" className="btn btn-primary add-staff-btn" style={{ whiteSpace: 'nowrap' }}>
+                        <Plus size={16} /> Add Rider
+                      </button>
+                    </div>
+                  </form>
+
+                  <div className="staff-list">
+                    {riders.length === 0 ? (
+                      <p className="text-center text-sm text-muted">No riders registered.</p>
+                    ) : (
+                      riders.map(rider => (
+                        <div className="staff-item" key={rider.id}>
+                          <div className="staff-details">
+                            <span className="staff-id">{rider.id}</span>
+                            <div>
+                              <strong>{rider.name}</strong>
+                              <span className="text-xs text-muted" style={{ display: 'block', opacity: 0.7 }}>{rider.email}</span>
+                              {rider.assignedOrderId && (
+                                <span className="assigned-tag">Delivering: {rider.assignedOrderId}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="staff-actions">
+                            <button 
+                              onClick={() => toggleStaffStatus(rider.id, 'rider')}
+                              className={`status-pill ${rider.status === 'idle' ? 'idle' : 'busy'}`}
+                            >
+                              {rider.status.toUpperCase()}
+                            </button>
+                            <button 
+                              onClick={() => handleRemoveStaff(rider.id, 'rider')}
+                              className="btn-remove"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'menu' && (
+          <div className="menu-management-section animate-fade-in mt-4">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px', alignItems: 'start' }}>
+              {/* Category Management Card */}
+              <div className="card" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                  <ClipboardList className="color-orange" size={22} />
+                  <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Menu Categories</h4>
+                </div>
+
+                <form onSubmit={handleAddCategory} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+                  <div>
+                    <label className="text-xs text-muted mb-1 block">Category ID (e.g. burgers, sides)</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. pizzas"
+                      className="form-input text-sm"
+                      value={newCatId}
+                      onChange={(e) => setNewCatId(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted mb-1 block">Category Label</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Spicy Pizzas"
+                      className="form-input text-sm"
+                      value={newCatLabel}
+                      onChange={(e) => setNewCatLabel(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary w-full" style={{ marginTop: '5px' }}>
+                    <Plus size={16} /> Add Category
+                  </button>
+                </form>
+
+                <h5 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Existing Categories</h5>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {categories.map(cat => (
+                    <div 
+                      key={cat.id} 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        background: 'rgba(255, 255, 255, 0.02)', 
+                        padding: '10px 12px', 
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)'
+                      }}
+                    >
+                      <div>
+                        <strong style={{ display: 'block', fontSize: '14px' }}>{cat.label}</strong>
+                        <span className="text-xs text-muted">ID: {cat.id}</span>
+                      </div>
+                      {cat.id !== 'all' && cat.id !== 'burgers' && cat.id !== 'sides' && cat.id !== 'drinks' && cat.id !== 'desserts' && cat.id !== 'meals' && (
+                        <button 
+                          onClick={() => handleRemoveCategory(cat.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--accent-red)',
+                            cursor: 'pointer',
+                            padding: '4px'
+                          }}
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <form onSubmit={handleAddChef} className="add-staff-form mb-4">
-                <input 
-                  type="text" 
-                  placeholder="Enter Chef's Name..."
-                  className="form-input text-sm"
-                  value={newChefName}
-                  onChange={(e) => setNewChefName(e.target.value)}
-                  required
-                />
-                <button type="submit" className="btn btn-primary add-staff-btn">
-                  <Plus size={16} /> Add Chef
-                </button>
-              </form>
+              {/* Add MenuItem Card */}
+              <div className="card" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                  <Plus className="color-orange" size={22} />
+                  <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Add New Food Item</h4>
+                </div>
 
-              <div className="staff-list">
-                {chefs.length === 0 ? (
-                  <p className="text-center text-sm text-muted">No chefs registered.</p>
-                ) : (
-                  chefs.map(chef => (
-                    <div className="staff-item" key={chef.id}>
-                      <div className="staff-details">
-                        <span className="staff-id">{chef.id}</span>
-                        <div>
-                          <strong>{chef.name}</strong>
-                          {chef.assignedOrderId && (
-                            <span className="assigned-tag">Cooking: {chef.assignedOrderId}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="staff-actions">
-                        <button 
-                          onClick={() => toggleStaffStatus(chef.id, 'chef')}
-                          className={`status-pill ${chef.status === 'idle' ? 'idle' : 'busy'}`}
-                        >
-                          {chef.status.toUpperCase()}
-                        </button>
-                        <button 
-                          onClick={() => handleRemoveStaff(chef.id, 'chef')}
-                          className="btn-remove"
-                        >
-                          <X size={14} />
-                        </button>
+                <form onSubmit={handleAddMenuItem} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <label className="text-xs text-muted mb-1 block">Food Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Classic Margherita"
+                        className="form-input text-sm"
+                        value={newItemName}
+                        onChange={(e) => setNewItemName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted mb-1 block">Description</label>
+                      <textarea 
+                        placeholder="Describe the ingredients, size, toppings..."
+                        className="form-input text-sm"
+                        value={newItemDesc}
+                        onChange={(e) => setNewItemDesc(e.target.value)}
+                        rows={3}
+                        style={{ height: 'auto', resize: 'vertical' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted mb-1 block">Price ($ USD)</label>
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        placeholder="e.g. 12.99"
+                        className="form-input text-sm"
+                        value={newItemPrice}
+                        onChange={(e) => setNewItemPrice(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted mb-1 block">Menu Category</label>
+                      <select 
+                        className="form-input text-sm"
+                        value={newItemCategory}
+                        onChange={(e) => setNewItemCategory(e.target.value)}
+                        required
+                        style={{ color: 'var(--text-primary)', background: 'var(--bg-card)' }}
+                      >
+                        {categories.filter(c => c.id !== 'all').map(cat => (
+                          <option key={cat.id} value={cat.id} style={{ color: 'var(--text-primary)', background: 'var(--bg-card)' }}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <label className="text-xs text-muted mb-1 block">Custom Image URL (Optional)</label>
+                      <input 
+                        type="text" 
+                        placeholder="Paste image link here..."
+                        className="form-input text-sm"
+                        value={newItemImage}
+                        onChange={(e) => setNewItemImage(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-muted mb-1 block">Or Choose Preset Image</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '5px' }}>
+                        {[
+                          { path: '/images/hero_burger.png', name: 'Classic Burger' },
+                          { path: '/images/triple_threat_burger.png', name: 'Triple Threat' },
+                          { path: '/images/spicy_chicken_deluxe.png', name: 'Spicy Chicken' },
+                          { path: '/images/loaded_animal_fries.png', name: 'Loaded Fries' }
+                        ].map(preset => {
+                          const isSelected = (!newItemImage && newItemPresetImage === preset.path);
+                          return (
+                            <div 
+                              key={preset.path}
+                              onClick={() => {
+                                setNewItemImage('');
+                                setNewItemPresetImage(preset.path);
+                              }}
+                              style={{
+                                border: isSelected ? '2px solid var(--primary)' : '2px solid transparent',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                background: 'rgba(255, 255, 255, 0.02)',
+                                textAlign: 'center',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              <img src={preset.path} alt={preset.name} style={{ width: '100%', height: '40px', objectFit: 'contain' }} />
+                              <span style={{ fontSize: '9px', color: 'var(--text-secondary)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{preset.name}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  ))
-                )}
+
+                    <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', marginTop: '15px' }}>
+                      <button type="submit" className="btn btn-primary w-full" style={{ padding: '12px' }}>
+                        <Plus size={18} /> Upload Food to Live Menu
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
             </div>
 
-            {/* Rider Management Card */}
-            <div className="staff-management-card card">
-              <div className="staff-card-header mb-3">
-                <Bike className="color-blue" size={22} />
-                <h4>Manage Courier Riders</h4>
+            {/* Live Menu Items Grid */}
+            <div className="card mt-5" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Live Store Menu Items ({menuItems.length})</h4>
               </div>
 
-              <form onSubmit={handleAddRider} className="add-staff-form mb-4">
-                <input 
-                  type="text" 
-                  placeholder="Enter Rider's Name..."
-                  className="form-input text-sm"
-                  value={newRiderName}
-                  onChange={(e) => setNewRiderName(e.target.value)}
-                  required
-                />
-                <button type="submit" className="btn btn-primary add-staff-btn">
-                  <Plus size={16} /> Add Rider
-                </button>
-              </form>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '20px' }}>
+                {menuItems.map(item => (
+                  <div 
+                    key={item.id} 
+                    style={{ 
+                      background: 'rgba(255, 255, 255, 0.02)', 
+                      border: '1px solid var(--border)', 
+                      borderRadius: 'var(--radius-md)', 
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                  >
+                    <div style={{ height: '140px', background: 'rgba(255, 255, 255, 0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                      <img src={item.image} alt={item.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', padding: '10px' }} />
+                      <span 
+                        style={{ 
+                          position: 'absolute', 
+                          top: '10px', 
+                          right: '10px', 
+                          background: 'rgba(0,0,0,0.6)', 
+                          color: 'var(--text-secondary)', 
+                          fontSize: '10px', 
+                          padding: '3px 8px', 
+                          borderRadius: '10px',
+                          border: '1px solid var(--border)'
+                        }}
+                      >
+                        {categories.find(c => c.id === item.category)?.label || item.category}
+                      </span>
+                    </div>
 
-              <div className="staff-list">
-                {riders.length === 0 ? (
-                  <p className="text-center text-sm text-muted">No riders registered.</p>
-                ) : (
-                  riders.map(rider => (
-                    <div className="staff-item" key={rider.id}>
-                      <div className="staff-details">
-                        <span className="staff-id">{rider.id}</span>
-                        <div>
-                          <strong>{rider.name}</strong>
-                          {rider.assignedOrderId && (
-                            <span className="assigned-tag">Delivering: {rider.assignedOrderId}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="staff-actions">
+                    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                      <h5 style={{ margin: '0 0 5px 0', fontSize: '15px', fontWeight: 700 }}>{item.name}</h5>
+                      <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.4', flexGrow: 1 }}>
+                        {item.description}
+                      </p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong style={{ color: 'var(--secondary)', fontSize: '15px' }}>${item.price.toFixed(2)}</strong>
                         <button 
-                          onClick={() => toggleStaffStatus(rider.id, 'rider')}
-                          className={`status-pill ${rider.status === 'idle' ? 'idle' : 'busy'}`}
+                          onClick={() => handleRemoveMenuItem(item.id)}
+                          className="btn btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--accent-red)', borderColor: 'rgba(234, 56, 56, 0.2)' }}
                         >
-                          {rider.status.toUpperCase()}
-                        </button>
-                        <button 
-                          onClick={() => handleRemoveStaff(rider.id, 'rider')}
-                          className="btn-remove"
-                        >
-                          <X size={14} />
+                          Delete
                         </button>
                       </div>
                     </div>
-                  ))
-                )}
+                  </div>
+                ))}
               </div>
             </div>
-
           </div>
-        </div>
+        )}
       </div>
 
       {/* Order Details Modal (View orders with images) */}

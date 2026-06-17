@@ -8,7 +8,7 @@ interface MenuItem {
   name: string;
   description: string;
   price: number;
-  category: 'burgers' | 'sides' | 'drinks' | 'desserts' | 'meals';
+  category: string;
   image: string;
 }
 
