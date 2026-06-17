@@ -137,7 +137,7 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({ item, isOpen, 
   return (
     <>
       <div className="modal-overlay" onClick={onClose}></div>
-      <div className="modal-container animate-modal-enter">
+      <div className="modal-container animate-customizer-modal-enter">
         <div className="modal-header">
           <h2>Customize Your Order</h2>
           <button className="modal-close-btn" onClick={onClose} aria-label="Close modal">
