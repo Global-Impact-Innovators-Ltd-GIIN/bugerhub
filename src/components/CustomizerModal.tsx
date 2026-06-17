@@ -135,9 +135,8 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({ item, isOpen, 
   const grandTotal = itemPrice * quantity;
 
   return (
-    <>
-      <div className="modal-overlay" onClick={onClose}></div>
-      <div className="modal-container animate-customizer-modal-enter">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container animate-customizer-modal-enter" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Customize Your Order</h2>
           <button className="modal-close-btn" onClick={onClose} aria-label="Close modal">
@@ -311,6 +310,6 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({ item, isOpen, 
           <span>Added to order!</span>
         </div>
       )}
-    </>
+    </div>
   );
 };
