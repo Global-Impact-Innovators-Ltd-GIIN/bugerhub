@@ -60,6 +60,8 @@ interface CartContextType {
   placeOrder: (details: CheckoutDetails) => Order;
   updateOrderStatus: (status: Order['status']) => void;
   clearActiveOrder: () => void;
+  orders: Order[];
+  updateOrderStatusInHistory: (orderId: string, status: Order['status']) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -80,6 +82,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [orders, setOrders] = useState<Order[]>(() => {
+    const saved = localStorage.getItem('burgerhub_all_orders');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   useEffect(() => {
     localStorage.setItem('burgerhub_cart', JSON.stringify(cart));
   }, [cart]);
@@ -97,6 +104,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('burgerhub_active_order');
     }
   }, [activeOrder]);
+
+  useEffect(() => {
+    localStorage.setItem('burgerhub_all_orders', JSON.stringify(orders));
+  }, [orders]);
 
   const generateItemId = (menuId: string, customizations: Customizations): string => {
     const extraNames = customizations.extras.map(e => e.name).sort().join(',');
@@ -166,6 +177,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setActiveOrder(newOrder);
+    setOrders(prevOrders => [newOrder, ...prevOrders]);
     clearCart();
     return newOrder;
   };
@@ -173,7 +185,24 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateOrderStatus = (status: Order['status']) => {
     setActiveOrder(prevOrder => {
       if (!prevOrder) return null;
-      return { ...prevOrder, status };
+      const updated = { ...prevOrder, status };
+      // Sync in history as well
+      setOrders(prevOrders =>
+        prevOrders.map(o => (o.id === prevOrder.id ? updated : o))
+      );
+      return updated;
+    });
+  };
+
+  const updateOrderStatusInHistory = (orderId: string, status: Order['status']) => {
+    setOrders(prevOrders =>
+      prevOrders.map(order => (order.id === orderId ? { ...order, status } : order))
+    );
+    setActiveOrder(prevOrder => {
+      if (prevOrder && prevOrder.id === orderId) {
+        return { ...prevOrder, status };
+      }
+      return prevOrder;
     });
   };
 
@@ -196,7 +225,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeOrder,
         placeOrder,
         updateOrderStatus,
-        clearActiveOrder
+        clearActiveOrder,
+        orders,
+        updateOrderStatusInHistory
       }}
     >
       {children}
