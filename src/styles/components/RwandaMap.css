@@ -1,0 +1,159 @@
+/* Rwanda Map Styling */
+
+.rwanda-map-container {
+  margin-top: 20px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+}
+
+.map-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.map-card-header h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.map-instructions {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.map-view-wrapper {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.rwanda-svg-canvas {
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+}
+
+/* Province Path Styles */
+.province-path {
+  fill: rgba(255, 255, 255, 0.03);
+  stroke: var(--border);
+  stroke-width: 1.5;
+  transition: all var(--transition-normal);
+  cursor: pointer;
+}
+
+.province-path:hover {
+  fill: rgba(255, 69, 0, 0.1);
+  stroke: var(--primary);
+  filter: drop-shadow(0 0 4px rgba(var(--primary-rgb), 0.3));
+}
+
+.province-path.selected {
+  fill: rgba(255, 69, 0, 0.2);
+  stroke: var(--primary);
+  filter: drop-shadow(0 0 10px rgba(var(--primary-rgb), 0.5));
+}
+
+/* Individual Province Colors for visual elegance */
+.kigali-province {
+  stroke: rgba(255, 69, 0, 0.6);
+}
+
+.northern-province:hover {
+  fill: rgba(37, 99, 235, 0.1);
+  stroke: #2563eb;
+}
+
+.northern-province.selected {
+  fill: rgba(37, 99, 235, 0.2);
+  stroke: #2563eb;
+}
+
+.eastern-province:hover {
+  fill: rgba(22, 163, 74, 0.1);
+  stroke: #16a34a;
+}
+
+.eastern-province.selected {
+  fill: rgba(22, 163, 74, 0.2);
+  stroke: #16a34a;
+}
+
+.western-province:hover {
+  fill: rgba(234, 88, 12, 0.1);
+  stroke: #ea580c;
+}
+
+.western-province.selected {
+  fill: rgba(234, 88, 12, 0.2);
+  stroke: #ea580c;
+}
+
+.southern-province:hover {
+  fill: rgba(124, 58, 237, 0.1);
+  stroke: #7c3aed;
+}
+
+.southern-province.selected {
+  fill: rgba(124, 58, 237, 0.2);
+  stroke: #7c3aed;
+}
+
+/* Marker Pulsing */
+.marker-glow-pulse {
+  fill: var(--primary);
+  opacity: 0.4;
+  animation: mapPulse 1.5s infinite ease-out;
+}
+
+@keyframes mapPulse {
+  0% {
+    r: 4;
+    opacity: 0.8;
+  }
+  100% {
+    r: 20;
+    opacity: 0;
+  }
+}
+
+/* Coordinates Info Bar */
+.map-coordinates-bar {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coord-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.coord-label {
+  color: var(--text-muted);
+}
+
+.coord-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.font-orange {
+  color: var(--primary);
+}
+
+.font-mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
