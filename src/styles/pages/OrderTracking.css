@@ -1,0 +1,444 @@
+/* Order Tracking Page Styles */
+.tracking-page {
+  padding: 60px 24px 100px 24px;
+}
+
+.tracking-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
+}
+
+.tracking-meta-id {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tracking-header-row h1 {
+  font-size: 32px;
+  font-weight: 800;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+.header-action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.flex-row-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+/* Empty State */
+.empty-tracking {
+  padding: 120px 24px;
+}
+
+/* Tracking Layout */
+.tracking-layout {
+  display: grid;
+  grid-template-columns: 1.8fr 1.2fr;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.tracking-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ETA Card */
+.eta-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.1) 0%, rgba(var(--secondary-rgb), 0.05) 100%);
+  border: 1px solid rgba(var(--primary-rgb), 0.25);
+  box-shadow: var(--glow-secondary);
+}
+
+.eta-icon {
+  color: var(--primary);
+}
+
+.eta-info span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.eta-info h3 {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-top: 4px;
+}
+
+/* Stepper Status */
+.status-stepper-card {
+  position: relative;
+  padding: 36px 24px;
+}
+
+.stepper-progress-bar {
+  position: absolute;
+  left: 42px;
+  top: 52px;
+  bottom: 52px;
+  width: 2px;
+  background-color: var(--border);
+  z-index: 1;
+}
+
+.stepper-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(180deg, var(--secondary) 0%, var(--primary) 100%);
+  box-shadow: var(--glow-primary);
+  transition: height 1s ease-in-out;
+  height: 0; /* default height */
+}
+
+/* For horizontal display on desktop */
+.stepper-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  position: relative;
+  z-index: 2;
+}
+
+.stepper-step {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.step-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.step-text h4 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  transition: color var(--transition-fast);
+}
+
+.step-text p {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Step State Modifiers */
+.step-completed .step-badge {
+  background-color: var(--accent-green);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+}
+
+.step-completed .step-text h4 {
+  color: var(--accent-green);
+}
+
+.step-active .step-badge {
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+  color: #ffffff;
+  box-shadow: var(--glow-primary);
+}
+
+.step-active .step-text h4 {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.step-pending .step-badge {
+  background-color: var(--bg-primary);
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+}
+
+.step-pending .step-text h4 {
+  color: var(--text-secondary);
+}
+
+/* Map Canvas */
+.live-map-card h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.map-canvas {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  position: relative;
+}
+
+.map-svg {
+  width: 100%;
+  height: auto;
+}
+
+.courier-rider-element {
+  transition: transform 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.courier-glow {
+  animation: pulse 1.5s infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 0.6; r: 10; }
+  to { opacity: 1; r: 15; }
+}
+
+.rider-bike-icon {
+  color: #ffffff;
+  position: absolute;
+  transform: translate(-7px, -7px);
+}
+
+.map-overlay-details {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+/* Receipt Details */
+.receipt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.receipt-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+}
+
+.receipt-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.receipt-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.receipt-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 14px;
+}
+
+.item-row-qty {
+  font-weight: 700;
+  color: var(--primary);
+  width: 24px;
+}
+
+.item-row-info {
+  flex: 1;
+}
+
+.item-row-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.item-row-cust {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.item-row-price {
+  font-weight: 600;
+}
+
+.receipt-totals-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.totals-table-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.totals-table-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 6px 0;
+}
+
+.receipt-grand-total {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.receipt-delivery-info {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.info-block {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.info-block h5 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.info-block p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* PRINT-ONLY STYLES */
+.print-receipt-only {
+  display: none;
+}
+
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .screen-content, .header, .footer {
+    display: none !important;
+  }
+  .print-receipt-only {
+    display: block !important;
+    font-family: 'Courier New', Courier, monospace;
+    width: 320px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #ffffff;
+    color: #000000;
+  }
+  .print-header {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  .print-header h2 {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+  .print-header p {
+    font-size: 11px;
+    margin: 0;
+  }
+  .print-divider {
+    border-bottom: 1px dashed #000000;
+    margin: 12px 0;
+  }
+  .print-meta p, .print-items p, .print-totals p {
+    font-size: 11px;
+    margin: 4px 0;
+  }
+  .print-item-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin: 4px 0;
+  }
+  .print-totals {
+    text-align: right;
+  }
+  .print-grand {
+    font-weight: bold;
+    font-size: 13px;
+  }
+  .print-footer-text {
+    text-align: center;
+    font-size: 10px;
+    margin-top: 20px;
+  }
+}
+
+/* Responsiveness */
+@media (max-width: 1024px) {
+  .tracking-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .tracking-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+    text-align: center;
+  }
+  .header-action-buttons {
+    flex-direction: column;
+  }
+  .eta-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+  }
+  .stepper-progress-bar {
+    left: 20px;
+  }
+  .step-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+  .stepper-step {
+    gap: 12px;
+  }
+}
