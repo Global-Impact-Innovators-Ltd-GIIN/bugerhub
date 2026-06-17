@@ -44,6 +44,10 @@ export interface Order {
   total: number;
   details: CheckoutDetails;
   status: 'preparing' | 'cooking' | 'delivering' | 'delivered';
+  assignedChefId?: string;
+  assignedChefName?: string;
+  assignedRiderId?: string;
+  assignedRiderName?: string;
 }
 
 interface CartContextType {
@@ -62,6 +66,10 @@ interface CartContextType {
   clearActiveOrder: () => void;
   orders: Order[];
   updateOrderStatusInHistory: (orderId: string, status: Order['status']) => void;
+  assignChefToOrder: (orderId: string, chefId: string, chefName: string) => void;
+  completeCookingOrder: (orderId: string, chefId: string) => void;
+  assignRiderToOrder: (orderId: string, riderId: string, riderName: string) => void;
+  completeDeliveryOrder: (orderId: string, riderId: string) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -206,6 +214,102 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const assignChefToOrder = (orderId: string, chefId: string, chefName: string) => {
+    setOrders(prevOrders =>
+      prevOrders.map(order => 
+        order.id === orderId 
+          ? { ...order, status: 'cooking', assignedChefId: chefId, assignedChefName: chefName } 
+          : order
+      )
+    );
+    setActiveOrder(prevOrder => {
+      if (prevOrder && prevOrder.id === orderId) {
+        return { ...prevOrder, status: 'cooking', assignedChefId: chefId, assignedChefName: chefName };
+      }
+      return prevOrder;
+    });
+
+    // Also update chef status in localStorage
+    const savedChefs = localStorage.getItem('burgerhub_chefs');
+    if (savedChefs) {
+      const chefs = JSON.parse(savedChefs);
+      const updated = chefs.map((c: any) => c.id === chefId ? { ...c, status: 'busy', assignedOrderId: orderId } : c);
+      localStorage.setItem('burgerhub_chefs', JSON.stringify(updated));
+    }
+  };
+
+  const completeCookingOrder = (orderId: string, chefId: string) => {
+    setOrders(prevOrders =>
+      prevOrders.map(order => 
+        order.id === orderId 
+          ? { ...order, status: 'delivering' } 
+          : order
+      )
+    );
+    setActiveOrder(prevOrder => {
+      if (prevOrder && prevOrder.id === orderId) {
+        return { ...prevOrder, status: 'delivering' };
+      }
+      return prevOrder;
+    });
+
+    // Also update chef status in localStorage to idle
+    const savedChefs = localStorage.getItem('burgerhub_chefs');
+    if (savedChefs) {
+      const chefs = JSON.parse(savedChefs);
+      const updated = chefs.map((c: any) => c.id === chefId ? { ...c, status: 'idle', assignedOrderId: undefined } : c);
+      localStorage.setItem('burgerhub_chefs', JSON.stringify(updated));
+    }
+  };
+
+  const assignRiderToOrder = (orderId: string, riderId: string, riderName: string) => {
+    setOrders(prevOrders =>
+      prevOrders.map(order => 
+        order.id === orderId 
+          ? { ...order, assignedRiderId: riderId, assignedRiderName: riderName } 
+          : order
+      )
+    );
+    setActiveOrder(prevOrder => {
+      if (prevOrder && prevOrder.id === orderId) {
+        return { ...prevOrder, assignedRiderId: riderId, assignedRiderName: riderName };
+      }
+      return prevOrder;
+    });
+
+    // Also update rider status in localStorage
+    const savedRiders = localStorage.getItem('burgerhub_riders');
+    if (savedRiders) {
+      const riders = JSON.parse(savedRiders);
+      const updated = riders.map((r: any) => r.id === riderId ? { ...r, status: 'busy', assignedOrderId: orderId } : r);
+      localStorage.setItem('burgerhub_riders', JSON.stringify(updated));
+    }
+  };
+
+  const completeDeliveryOrder = (orderId: string, riderId: string) => {
+    setOrders(prevOrders =>
+      prevOrders.map(order => 
+        order.id === orderId 
+          ? { ...order, status: 'delivered' } 
+          : order
+      )
+    );
+    setActiveOrder(prevOrder => {
+      if (prevOrder && prevOrder.id === orderId) {
+        return { ...prevOrder, status: 'delivered' };
+      }
+      return prevOrder;
+    });
+
+    // Also update rider status in localStorage to idle
+    const savedRiders = localStorage.getItem('burgerhub_riders');
+    if (savedRiders) {
+      const riders = JSON.parse(savedRiders);
+      const updated = riders.map((r: any) => r.id === riderId ? { ...r, status: 'idle', assignedOrderId: undefined } : r);
+      localStorage.setItem('burgerhub_riders', JSON.stringify(updated));
+    }
+  };
+
   const clearActiveOrder = () => {
     setActiveOrder(null);
   };
@@ -227,7 +331,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateOrderStatus,
         clearActiveOrder,
         orders,
-        updateOrderStatusInHistory
+        updateOrderStatusInHistory,
+        assignChefToOrder,
+        completeCookingOrder,
+        assignRiderToOrder,
+        completeDeliveryOrder
       }}
     >
       {children}
