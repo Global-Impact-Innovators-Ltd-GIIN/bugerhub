@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, ShieldAlert, ChefHat } from 'lucide-react';
+import { fetchChefs } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 import '../styles/pages/StaffPortals.css';
 
@@ -23,11 +24,11 @@ export const ChefLogin: React.FC = () => {
     }
   }, [navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const chefs = JSON.parse(localStorage.getItem('burgerhub_chefs') || '[]');
+    const chefs = await fetchChefs();
     const matchedChef = chefs.find((c: any) => c.email.toLowerCase() === email.toLowerCase().trim() && c.password === password);
 
     if (matchedChef) {

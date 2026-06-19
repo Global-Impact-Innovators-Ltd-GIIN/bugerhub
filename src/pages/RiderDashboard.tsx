@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bike, LogOut, Clock, Check, Eye, MapPin, Phone, AlertCircle, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import type { Order } from '../context/CartContext';
+import { fetchRiders } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 import '../styles/pages/StaffPortals.css';
 
@@ -23,16 +24,11 @@ export const RiderDashboard: React.FC = () => {
     const riderObj = JSON.parse(session);
 
     // Refresh state from central riders collection to stay synced
-    const syncRiderState = () => {
-      const savedRiders = localStorage.getItem('burgerhub_riders');
-      if (savedRiders) {
-        const ridersList = JSON.parse(savedRiders);
-        const currentRider = ridersList.find((r: any) => r.id === riderObj.id);
-        if (currentRider) {
-          setRider(currentRider);
-        } else {
-          setRider(riderObj);
-        }
+    const syncRiderState = async () => {
+      const ridersList = await fetchRiders();
+      const currentRider = ridersList.find((r: any) => r.id === riderObj.id);
+      if (currentRider) {
+        setRider(currentRider);
       } else {
         setRider(riderObj);
       }

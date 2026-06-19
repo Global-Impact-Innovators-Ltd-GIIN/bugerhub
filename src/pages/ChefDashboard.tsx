@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChefHat, LogOut, Clock, Check, Eye, ClipboardList, AlertCircle, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import type { Order } from '../context/CartContext';
+import { fetchChefs } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 import '../styles/pages/StaffPortals.css';
 
@@ -24,16 +25,11 @@ export const ChefDashboard: React.FC = () => {
     const chefObj = JSON.parse(session);
 
     // Refresh state from central chefs collection to stay synced
-    const syncChefState = () => {
-      const savedChefs = localStorage.getItem('burgerhub_chefs');
-      if (savedChefs) {
-        const chefsList = JSON.parse(savedChefs);
-        const currentChef = chefsList.find((c: any) => c.id === chefObj.id);
-        if (currentChef) {
-          setChef(currentChef);
-        } else {
-          setChef(chefObj);
-        }
+    const syncChefState = async () => {
+      const chefsList = await fetchChefs();
+      const currentChef = chefsList.find((c: any) => c.id === chefObj.id);
+      if (currentChef) {
+        setChef(currentChef);
       } else {
         setChef(chefObj);
       }

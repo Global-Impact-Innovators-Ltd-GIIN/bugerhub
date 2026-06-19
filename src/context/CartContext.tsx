@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { fetchOrders, saveOrder, saveChefs, saveRiders } from '../utils/supabaseDb';
 
 export interface Customizations {
   bun?: string;
@@ -96,6 +97,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
+    const loadDbOrders = async () => {
+      const dbOrders = await fetchOrders();
+      setOrders(dbOrders);
+    };
+    loadDbOrders();
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('burgerhub_cart', JSON.stringify(cart));
   }, [cart]);
 
@@ -186,6 +195,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setActiveOrder(newOrder);
     setOrders(prevOrders => [newOrder, ...prevOrders]);
+    saveOrder(newOrder);
     clearCart();
     return newOrder;
   };
@@ -194,18 +204,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveOrder(prevOrder => {
       if (!prevOrder) return null;
       const updated = { ...prevOrder, status };
-      // Sync in history as well
       setOrders(prevOrders =>
         prevOrders.map(o => (o.id === prevOrder.id ? updated : o))
       );
+      saveOrder(updated);
       return updated;
     });
   };
 
   const updateOrderStatusInHistory = (orderId: string, status: Order['status']) => {
-    setOrders(prevOrders =>
-      prevOrders.map(order => (order.id === orderId ? { ...order, status } : order))
-    );
+    setOrders(prevOrders => {
+      const updated = prevOrders.map(order => (order.id === orderId ? { ...order, status } : order));
+      const targetOrder = updated.find(o => o.id === orderId);
+      if (targetOrder) saveOrder(targetOrder);
+      return updated;
+    });
     setActiveOrder(prevOrder => {
       if (prevOrder && prevOrder.id === orderId) {
         return { ...prevOrder, status };
@@ -215,13 +228,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const assignChefToOrder = (orderId: string, chefId: string, chefName: string) => {
-    setOrders(prevOrders =>
-      prevOrders.map(order => 
+    setOrders(prevOrders => {
+      const updated = prevOrders.map(order => 
         order.id === orderId 
-          ? { ...order, status: 'cooking', assignedChefId: chefId, assignedChefName: chefName } 
+          ? { ...order, status: 'cooking' as const, assignedChefId: chefId, assignedChefName: chefName } 
           : order
-      )
-    );
+      );
+      const targetOrder = updated.find(o => o.id === orderId);
+      if (targetOrder) saveOrder(targetOrder);
+      return updated;
+    });
     setActiveOrder(prevOrder => {
       if (prevOrder && prevOrder.id === orderId) {
         return { ...prevOrder, status: 'cooking', assignedChefId: chefId, assignedChefName: chefName };
@@ -229,23 +245,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return prevOrder;
     });
 
-    // Also update chef status in localStorage
     const savedChefs = localStorage.getItem('burgerhub_chefs');
     if (savedChefs) {
       const chefs = JSON.parse(savedChefs);
       const updated = chefs.map((c: any) => c.id === chefId ? { ...c, status: 'busy', assignedOrderId: orderId } : c);
-      localStorage.setItem('burgerhub_chefs', JSON.stringify(updated));
+      saveChefs(updated);
     }
   };
 
   const completeCookingOrder = (orderId: string, chefId: string) => {
-    setOrders(prevOrders =>
-      prevOrders.map(order => 
+    setOrders(prevOrders => {
+      const updated = prevOrders.map(order => 
         order.id === orderId 
-          ? { ...order, status: 'delivering' } 
+          ? { ...order, status: 'delivering' as const } 
           : order
-      )
-    );
+      );
+      const targetOrder = updated.find(o => o.id === orderId);
+      if (targetOrder) saveOrder(targetOrder);
+      return updated;
+    });
     setActiveOrder(prevOrder => {
       if (prevOrder && prevOrder.id === orderId) {
         return { ...prevOrder, status: 'delivering' };
@@ -253,23 +271,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return prevOrder;
     });
 
-    // Also update chef status in localStorage to idle
     const savedChefs = localStorage.getItem('burgerhub_chefs');
     if (savedChefs) {
       const chefs = JSON.parse(savedChefs);
       const updated = chefs.map((c: any) => c.id === chefId ? { ...c, status: 'idle', assignedOrderId: undefined } : c);
-      localStorage.setItem('burgerhub_chefs', JSON.stringify(updated));
+      saveChefs(updated);
     }
   };
 
   const assignRiderToOrder = (orderId: string, riderId: string, riderName: string) => {
-    setOrders(prevOrders =>
-      prevOrders.map(order => 
+    setOrders(prevOrders => {
+      const updated = prevOrders.map(order => 
         order.id === orderId 
           ? { ...order, assignedRiderId: riderId, assignedRiderName: riderName } 
           : order
-      )
-    );
+      );
+      const targetOrder = updated.find(o => o.id === orderId);
+      if (targetOrder) saveOrder(targetOrder);
+      return updated;
+    });
     setActiveOrder(prevOrder => {
       if (prevOrder && prevOrder.id === orderId) {
         return { ...prevOrder, assignedRiderId: riderId, assignedRiderName: riderName };
@@ -277,23 +297,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return prevOrder;
     });
 
-    // Also update rider status in localStorage
     const savedRiders = localStorage.getItem('burgerhub_riders');
     if (savedRiders) {
       const riders = JSON.parse(savedRiders);
       const updated = riders.map((r: any) => r.id === riderId ? { ...r, status: 'busy', assignedOrderId: orderId } : r);
-      localStorage.setItem('burgerhub_riders', JSON.stringify(updated));
+      saveRiders(updated);
     }
   };
 
   const completeDeliveryOrder = (orderId: string, riderId: string) => {
-    setOrders(prevOrders =>
-      prevOrders.map(order => 
+    setOrders(prevOrders => {
+      const updated = prevOrders.map(order => 
         order.id === orderId 
-          ? { ...order, status: 'delivered' } 
+          ? { ...order, status: 'delivered' as const } 
           : order
-      )
-    );
+      );
+      const targetOrder = updated.find(o => o.id === orderId);
+      if (targetOrder) saveOrder(targetOrder);
+      return updated;
+    });
     setActiveOrder(prevOrder => {
       if (prevOrder && prevOrder.id === orderId) {
         return { ...prevOrder, status: 'delivered' };
@@ -301,12 +323,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return prevOrder;
     });
 
-    // Also update rider status in localStorage to idle
     const savedRiders = localStorage.getItem('burgerhub_riders');
     if (savedRiders) {
       const riders = JSON.parse(savedRiders);
       const updated = riders.map((r: any) => r.id === riderId ? { ...r, status: 'idle', assignedOrderId: undefined } : r);
-      localStorage.setItem('burgerhub_riders', JSON.stringify(updated));
+      saveRiders(updated);
     }
   };
 

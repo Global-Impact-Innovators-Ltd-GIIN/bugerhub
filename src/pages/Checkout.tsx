@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreditCard, Truck, Store, Lock, ShieldAlert, Phone } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { saveUser } from '../utils/supabaseDb';
 import type { CheckoutDetails } from '../context/CartContext';
 import { RwandaMap } from '../components/RwandaMap';
 import '../styles/pages/Checkout.css';
@@ -90,19 +91,37 @@ export const Checkout: React.FC = () => {
     }
   }, []);
 
-  const updateUserProfile = (profileData: { name: string, email: string, phone: string, address: string, city: string, zipCode: string }) => {
+  const updateUserProfile = (details: { name: string, email: string, phone: string, address: string, city: string, zipCode: string }) => {
     const session = localStorage.getItem('burgerhub_active_user');
-    if (!session) return;
-    const userObj = JSON.parse(session);
     
-    const updatedUser = { ...userObj, ...profileData };
-    localStorage.setItem('burgerhub_active_user', JSON.stringify(updatedUser));
-    setActiveUser(updatedUser);
-
-    const usersList = JSON.parse(localStorage.getItem('burgerhub_users') || '[]');
-    const updatedList = usersList.map((u: any) => u.id === userObj.id ? { ...u, ...profileData } : u);
-    localStorage.setItem('burgerhub_users', JSON.stringify(updatedList));
+    // Save updated details to user profile if checked
+    if (saveToProfile && session) {
+      const activeUser = JSON.parse(session);
+      const updatedUser = {
+        id: activeUser.id,
+        name: details.name,
+        email: details.email,
+        phone: details.phone,
+        address: details.address,
+        city: details.city,
+        zipCode: details.zipCode,
+        password: activeUser.password || '' // preserve
+      };
+      
+      localStorage.setItem('burgerhub_active_user', JSON.stringify({
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        address: updatedUser.address,
+        city: updatedUser.city,
+        zipCode: updatedUser.zipCode
+      }));
+      
+      saveUser(updatedUser);
+    }
   };
+
   // Helper: Format amount with selected currency symbol
   const formatAmount = (usdAmount: number) => {
     if (currency === 'RWF') {

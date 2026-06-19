@@ -8,6 +8,12 @@ import {
 import { useCart } from '../context/CartContext';
 import type { Order } from '../context/CartContext';
 import { RwandaMap } from '../components/RwandaMap';
+import { 
+  fetchChefs, saveChefs, removeChef, fetchRiders, saveRiders, removeRider,
+  fetchUsers, saveUser, removeUser, fetchMenuCategories, 
+  saveMenuCategories, removeMenuCategory, fetchMenuItems, 
+  saveMenuItem, removeMenuItem, fetchAdmins 
+} from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 
 interface Staff {
@@ -95,185 +101,48 @@ export const AdminDashboard: React.FC = () => {
     const adminObj = JSON.parse(session);
     
     // Check if admin is valid in the database
-    const admins = JSON.parse(localStorage.getItem('burgerhub_admins') || '[]');
-    const verifiedAdmin = admins.find((a: any) => a.email.toLowerCase() === adminObj.email?.toLowerCase());
-    if (!verifiedAdmin) {
-      sessionStorage.removeItem('burgerhub_active_admin');
-      navigate('/admin/login');
-      return;
-    }
-    setAdminName(verifiedAdmin.name || 'Admin');
+    const verifyAndLoad = async () => {
+      const admins = await fetchAdmins();
+      const verifiedAdmin = admins.find((a: any) => a.email.toLowerCase() === adminObj.email?.toLowerCase());
+      if (!verifiedAdmin) {
+        sessionStorage.removeItem('burgerhub_active_admin');
+        navigate('/admin/login');
+        return;
+      }
+      setAdminName(verifiedAdmin.name || 'Admin');
 
-    // Initialize staff from localStorage or set defaults
-    const savedChefs = localStorage.getItem('burgerhub_chefs');
-    if (savedChefs) {
-      setChefs(JSON.parse(savedChefs));
-    } else {
-      const defaultChefs: Staff[] = [
-        { id: 'C1', name: 'Chef Kwizera', email: 'chef1@burgerhub.com', password: 'chef123', role: 'chef', status: 'idle' },
-        { id: 'C2', name: 'Chef Mutoni', email: 'chef2@burgerhub.com', password: 'chef123', role: 'chef', status: 'busy', assignedOrderId: 'BH-582910' },
-        { id: 'C3', name: 'Chef Gakire', email: 'chef3@burgerhub.com', password: 'chef123', role: 'chef', status: 'idle' }
-      ];
-      setChefs(defaultChefs);
-      localStorage.setItem('burgerhub_chefs', JSON.stringify(defaultChefs));
-    }
+      // Load data from Supabase
+      const dbChefs = await fetchChefs();
+      setChefs(dbChefs);
 
-    const savedRiders = localStorage.getItem('burgerhub_riders');
-    if (savedRiders) {
-      setRiders(JSON.parse(savedRiders));
-    } else {
-      const defaultRiders: Staff[] = [
-        { id: 'R1', name: 'Rider Jean', email: 'rider1@burgerhub.com', password: 'rider123', role: 'rider', status: 'busy', assignedOrderId: 'BH-248910' },
-        { id: 'R2', name: 'Rider Claude', email: 'rider2@burgerhub.com', password: 'rider123', role: 'rider', status: 'idle' },
-        { id: 'R3', name: 'Rider Diane', email: 'rider3@burgerhub.com', password: 'rider123', role: 'rider', status: 'idle' }
-      ];
-      setRiders(defaultRiders);
-      localStorage.setItem('burgerhub_riders', JSON.stringify(defaultRiders));
-    }
+      const dbRiders = await fetchRiders();
+      setRiders(dbRiders);
 
-    // Load registered users
-    const savedUsers = localStorage.getItem('burgerhub_users');
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    } else {
-      const defaultUsers = [
-        {
-          id: 'U1',
-          name: 'John Doe',
-          email: 'customer@burgerhub.com',
-          password: 'customer123',
-          phone: '+250 788 123 456',
-          address: 'Kigali Province, Nyarugenge District (Map Pin: 1.9441° S, 30.0619° E)',
-          city: 'Nyarugenge District, Rwanda',
-          zipCode: '250'
-        }
-      ];
-      setUsers(defaultUsers);
-      localStorage.setItem('burgerhub_users', JSON.stringify(defaultUsers));
-    }
-    // Seed/Load categories & menu items
-    const savedCategories = localStorage.getItem('burgerhub_menu_categories');
-    let cats = [];
-    if (savedCategories) {
-      cats = JSON.parse(savedCategories);
-    } else {
-      cats = [
-        { id: 'all', label: 'All Items' },
-        { id: 'burgers', label: 'Signature Burgers' },
-        { id: 'meals', label: 'Family Meals' },
-        { id: 'sides', label: 'Sides & Drinks' },
-        { id: 'desserts', label: 'Desserts' }
-      ];
-      localStorage.setItem('burgerhub_menu_categories', JSON.stringify(cats));
-    }
-    setCategories(cats);
+      const dbUsers = await fetchUsers();
+      setUsers(dbUsers);
 
-    const savedItems = localStorage.getItem('burgerhub_menu_items');
-    let items = [];
-    if (savedItems) {
-      items = JSON.parse(savedItems);
-    } else {
-      items = [
-        {
-          id: 'triple-threat',
-          name: 'Triple Threat Burger',
-          description: 'Three juicy beef patties, triple cheddar cheese, smoked bacon, special sauce, brioche bun.',
-          price: 18.99,
-          category: 'burgers',
-          image: '/images/triple_threat_burger.png'
-        },
-        {
-          id: 'spicy-chicken',
-          name: 'Spicy Chicken Deluxe',
-          description: 'Spicy crispy fried chicken, creamy coleslaw, dill pickle slices, chipotle mayo, brioche bun.',
-          price: 14.99,
-          category: 'burgers',
-          image: '/images/spicy_chicken_deluxe.png'
-        },
-        {
-          id: 'classic-cheeseburger',
-          name: 'Classic Cheeseburger',
-          description: 'Flame-grilled beef patty, melted cheddar, crisp lettuce, tomato, pickles, and our signature sauce.',
-          price: 12.99,
-          category: 'burgers',
-          image: '/images/hero_burger.png'
-        },
-        {
-          id: 'bacon-avocado',
-          name: 'Bacon Avocado Burger',
-          description: 'Flame-grilled beef patty, smoked bacon, fresh avocado slices, Swiss cheese, and garlic aioli.',
-          price: 15.99,
-          category: 'burgers',
-          image: '/images/triple_threat_burger.png'
-        },
-        {
-          id: 'animal-fries',
-          name: 'Loaded Animal Fries',
-          description: 'Crispy golden french fries topped with melted cheese, caramelized grilled onions, and thousand island sauce.',
-          price: 9.99,
-          category: 'sides',
-          image: '/images/loaded_animal_fries.png'
-        },
-        {
-          id: 'sweet-potato-fries',
-          name: 'Sweet Potato Fries',
-          description: 'Crispy sweet potato fries lightly salted, served with a side of maple dipping sauce.',
-          price: 6.99,
-          category: 'sides',
-          image: '/images/loaded_animal_fries.png'
-        },
-        {
-          id: 'double-stack-meal',
-          name: 'Double Stack Combo Deal',
-          description: 'Double Cheeseburger, Loaded Animal Fries, and a large draft soda. The ultimate meal.',
-          price: 24.99,
-          category: 'meals',
-          image: '/images/hero_burger.png'
-        },
-        {
-          id: 'draft-soda',
-          name: 'Draft Soda',
-          description: 'Refreshing carbonated beverages poured fresh over ice. Choice of Coca Cola, Sprite, or Fanta.',
-          price: 3.49,
-          category: 'drinks',
-          image: '/images/loaded_animal_fries.png'
-        },
-        {
-          id: 'milkshake',
-          name: 'Classic Milkshake',
-          description: 'Thick, creamy milkshake made with real vanilla ice cream. Whipped cream and cherry on top.',
-          price: 5.99,
-          category: 'desserts',
-          image: '/images/spicy_chicken_deluxe.png'
-        },
-        {
-          id: 'chocolate-brownie',
-          name: 'Warm Chocolate Brownie',
-          description: 'Warm fudge chocolate brownie topped with chocolate drizzle, served with vanilla ice cream.',
-          price: 7.99,
-          category: 'desserts',
-          image: '/images/triple_threat_burger.png'
-        }
-      ];
-      localStorage.setItem('burgerhub_menu_items', JSON.stringify(items));
-    }
-    setMenuItems(items);
-    
-    // Set default category selection
-    if (cats.length > 0) {
-      setNewItemCategory(cats[0].id === 'all' ? (cats[1]?.id || 'burgers') : cats[0].id);
-    }
+      const dbCats = await fetchMenuCategories();
+      setCategories(dbCats);
+      if (dbCats.length > 0) {
+        const defaultCat = dbCats[0].id === 'all' ? (dbCats[1]?.id || 'burgers') : dbCats[0].id;
+        setNewItemCategory(defaultCat);
+      }
+
+      const dbItems = await fetchMenuItems();
+      setMenuItems(dbItems);
+    };
+    verifyAndLoad();
   }, [navigate]);
 
   // Persist staff changes
   const updateChefsInStorage = (updated: Staff[]) => {
     setChefs(updated);
-    localStorage.setItem('burgerhub_chefs', JSON.stringify(updated));
+    saveChefs(updated);
   };
 
   const updateRidersInStorage = (updated: Staff[]) => {
     setRiders(updated);
-    localStorage.setItem('burgerhub_riders', JSON.stringify(updated));
+    saveRiders(updated);
   };
 
   // Staff management triggers
@@ -335,7 +204,7 @@ export const AdminDashboard: React.FC = () => {
 
     const updated = [...categories, { id: cid, label: newCatLabel.trim() }];
     setCategories(updated);
-    localStorage.setItem('burgerhub_menu_categories', JSON.stringify(updated));
+    saveMenuCategories(updated);
     setNewCatId('');
     setNewCatLabel('');
   };
@@ -348,7 +217,7 @@ export const AdminDashboard: React.FC = () => {
     if (confirm('Are you sure you want to delete this category? Items under this category will not be deleted but they will not belong to a valid category.')) {
       const updated = categories.filter(c => c.id !== catId);
       setCategories(updated);
-      localStorage.setItem('burgerhub_menu_categories', JSON.stringify(updated));
+      removeMenuCategory(catId);
     }
   };
 
@@ -374,7 +243,7 @@ export const AdminDashboard: React.FC = () => {
 
     const updated = [...menuItems, newItem];
     setMenuItems(updated);
-    localStorage.setItem('burgerhub_menu_items', JSON.stringify(updated));
+    saveMenuItem(newItem);
 
     setNewItemName('');
     setNewItemDesc('');
@@ -386,7 +255,7 @@ export const AdminDashboard: React.FC = () => {
     if (confirm('Are you sure you want to delete this menu item?')) {
       const updated = menuItems.filter(item => item.id !== itemId);
       setMenuItems(updated);
-      localStorage.setItem('burgerhub_menu_items', JSON.stringify(updated));
+      removeMenuItem(itemId);
     }
   };
 
@@ -452,8 +321,8 @@ export const AdminDashboard: React.FC = () => {
     e.preventDefault();
     if (!editingUser) return;
 
-    const updated = users.map(u => u.id === editingUser.id ? {
-      ...u,
+    const updatedUserObj = {
+      id: editingUser.id,
       name: editUserName.trim(),
       email: editUserEmail.trim(),
       phone: editUserPhone.trim(),
@@ -461,10 +330,11 @@ export const AdminDashboard: React.FC = () => {
       city: editUserCity.trim(),
       zipCode: editUserZipCode.trim(),
       password: editUserPassword.trim()
-    } : u);
+    };
 
+    const updated = users.map(u => u.id === editingUser.id ? updatedUserObj : u);
     setUsers(updated);
-    localStorage.setItem('burgerhub_users', JSON.stringify(updated));
+    saveUser(updatedUserObj);
 
     // Update active user session if that user was logged in
     const activeSession = localStorage.getItem('burgerhub_active_user');
@@ -490,7 +360,7 @@ export const AdminDashboard: React.FC = () => {
     if (confirm('Are you sure you want to delete this customer account?')) {
       const updated = users.filter(u => u.id !== id);
       setUsers(updated);
-      localStorage.setItem('burgerhub_users', JSON.stringify(updated));
+      removeUser(id);
 
       // Clear session if that user was logged in
       const activeSession = localStorage.getItem('burgerhub_active_user');
@@ -505,10 +375,12 @@ export const AdminDashboard: React.FC = () => {
   const handleRemoveStaff = (id: string, role: 'chef' | 'rider') => {
     if (role === 'chef') {
       const updated = chefs.filter(c => c.id !== id);
-      updateChefsInStorage(updated);
+      setChefs(updated);
+      removeChef(id);
     } else {
       const updated = riders.filter(r => r.id !== id);
-      updateRidersInStorage(updated);
+      setRiders(updated);
+      removeRider(id);
     }
   };
 

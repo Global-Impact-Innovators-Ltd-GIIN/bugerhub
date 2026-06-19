@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Mail, Lock, ShieldAlert, KeyRound, ShieldCheck } from 'lucide-react';
+import { fetchAdmins, saveAdmin } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 
 export const AdminSignup: React.FC = () => {
@@ -14,7 +15,7 @@ export const AdminSignup: React.FC = () => {
   useEffect(() => {
   }, [navigate]);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -24,7 +25,7 @@ export const AdminSignup: React.FC = () => {
       return;
     }
 
-    const admins = JSON.parse(localStorage.getItem('burgerhub_admins') || '[]');
+    const admins = await fetchAdmins();
     const emailExists = admins.some((a: any) => a.email.toLowerCase() === email.toLowerCase().trim());
 
     if (emailExists) {
@@ -38,8 +39,7 @@ export const AdminSignup: React.FC = () => {
       password: password
     };
 
-    admins.push(newAdmin);
-    localStorage.setItem('burgerhub_admins', JSON.stringify(admins));
+    await saveAdmin(newAdmin);
     sessionStorage.setItem('burgerhub_active_admin', JSON.stringify({ email: newAdmin.email, name: newAdmin.name }));
     
     navigate('/admin/dashboard');

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, ShieldAlert, Bike } from 'lucide-react';
+import { fetchRiders } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 import '../styles/pages/StaffPortals.css';
 
@@ -23,11 +24,11 @@ export const RiderLogin: React.FC = () => {
     }
   }, [navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const riders = JSON.parse(localStorage.getItem('burgerhub_riders') || '[]');
+    const riders = await fetchRiders();
     const matchedRider = riders.find((r: any) => r.email.toLowerCase() === email.toLowerCase().trim() && r.password === password);
 
     if (matchedRider) {

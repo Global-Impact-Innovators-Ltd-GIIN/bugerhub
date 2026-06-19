@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Lock, Mail, ShieldAlert, UserCheck } from 'lucide-react';
+import { fetchUsers } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 
 export const UserLogin: React.FC = () => {
@@ -40,11 +41,11 @@ export const UserLogin: React.FC = () => {
     }
   }, [navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const users = JSON.parse(localStorage.getItem('burgerhub_users') || '[]');
+    const users = await fetchUsers();
     const matchedUser = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase().trim() && u.password === password);
 
     if (matchedUser) {

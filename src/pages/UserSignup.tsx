@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { User, Mail, Lock, Phone, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { RwandaMap } from '../components/RwandaMap';
+import { fetchUsers, saveUser } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 
 export const UserSignup: React.FC = () => {
@@ -34,7 +35,7 @@ export const UserSignup: React.FC = () => {
     setZipCode('250');
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -43,7 +44,7 @@ export const UserSignup: React.FC = () => {
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem('burgerhub_users') || '[]');
+    const users = await fetchUsers();
     const emailExists = users.some((u: any) => u.email.toLowerCase() === email.toLowerCase().trim());
 
     if (emailExists) {
@@ -62,8 +63,7 @@ export const UserSignup: React.FC = () => {
       zipCode: zipCode || '250'
     };
 
-    users.push(newUser);
-    localStorage.setItem('burgerhub_users', JSON.stringify(users));
+    await saveUser(newUser);
 
     // Auto-login (save without password)
     const { password: _, ...sessionUser } = newUser;

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, LogOut, Check, MapPin, ShieldCheck, ShoppingBag } from 'lucide-react';
 import { RwandaMap } from '../components/RwandaMap';
 import { useCart } from '../context/CartContext';
+import { fetchUsers, saveUser } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 import '../styles/pages/UserAccount.css';
 
@@ -24,26 +25,28 @@ export const UserProfile: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    const session = localStorage.getItem('burgerhub_active_user');
-    if (!session) {
-      navigate('/login');
-      return;
-    }
-    const userObj = JSON.parse(session);
-    setUser(userObj);
-    setName(userObj.name || '');
-    setEmail(userObj.email || '');
-    setPhone(userObj.phone || '');
-    setAddress(userObj.address || '');
-    setCity(userObj.city || '');
-    setZipCode(userObj.zipCode || '');
+    const loadProfileData = async () => {
+      const session = localStorage.getItem('burgerhub_active_user');
+      if (!session) {
+        navigate('/login');
+        return;
+      }
+      const userObj = JSON.parse(session);
+      setUser(userObj);
+      setName(userObj.name || '');
+      setEmail(userObj.email || '');
+      setPhone(userObj.phone || '');
+      setAddress(userObj.address || '');
+      setCity(userObj.city || '');
+      setZipCode(userObj.zipCode || '');
 
-    // Fetch password from database list
-    const users = JSON.parse(localStorage.getItem('burgerhub_users') || '[]');
-    const matchingUser = users.find((u: any) => u.id === userObj.id);
-    if (matchingUser) {
-      setPassword(matchingUser.password || '');
-    }
+      const dbUsers = await fetchUsers();
+      const matchingUser = dbUsers.find((u: any) => u.id === userObj.id);
+      if (matchingUser) {
+        setPassword(matchingUser.password || '');
+      }
+    };
+    loadProfileData();
   }, [navigate]);
 
   const handleLocationSelected = (fullAddr: string, selectedDistrict: string, _coordsStr: string) => {
@@ -52,7 +55,7 @@ export const UserProfile: React.FC = () => {
     setZipCode('250');
   };
 
-  const handleUpdateProfile = (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMsg('');
     setErrorMsg('');
@@ -63,7 +66,7 @@ export const UserProfile: React.FC = () => {
       return;
     }
 
-    const usersList = JSON.parse(localStorage.getItem('burgerhub_users') || '[]');
+    const usersList = await fetchUsers();
     
     // Check if email already taken by someone else
     const emailTaken = usersList.some((u: any) => u.id !== user.id && u.email.toLowerCase() === email.toLowerCase().trim());
@@ -72,24 +75,18 @@ export const UserProfile: React.FC = () => {
       return;
     }
 
-    // Update in database list
-    const updatedUsers = usersList.map((u: any) => {
-      if (u.id === user.id) {
-        return {
-          ...u,
-          name: name.trim(),
-          email: email.toLowerCase().trim(),
-          phone: phone.trim(),
-          address: address,
-          city: city,
-          zipCode: zipCode,
-          password: password // keep or update password
-        };
-      }
-      return u;
-    });
+    const updatedUserObj = {
+      id: user.id,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      phone: phone.trim(),
+      address: address,
+      city: city,
+      zipCode: zipCode,
+      password: password
+    };
 
-    localStorage.setItem('burgerhub_users', JSON.stringify(updatedUsers));
+    await saveUser(updatedUserObj);
 
     // Update session (omit password)
     const updatedSession = {
