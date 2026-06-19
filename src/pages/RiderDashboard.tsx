@@ -18,7 +18,7 @@ export const RiderDashboard: React.FC = () => {
   useEffect(() => {
     const session = sessionStorage.getItem('burgerhub_active_rider') || localStorage.getItem('burgerhub_active_rider');
     if (!session) {
-      navigate('/rider/login');
+      navigate('/login');
       return;
     }
     const riderObj = JSON.parse(session);
@@ -60,7 +60,7 @@ export const RiderDashboard: React.FC = () => {
   const handleLogout = () => {
     sessionStorage.removeItem('burgerhub_active_rider');
     localStorage.removeItem('burgerhub_active_rider');
-    navigate('/rider/login');
+    navigate('/login');
   };
 
   const handleClaimDelivery = (orderId: string) => {

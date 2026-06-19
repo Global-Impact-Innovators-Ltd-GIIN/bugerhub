@@ -57,14 +57,26 @@ export const Header: React.FC = () => {
             <Link to="/deals" className={`nav-link ${isActive('/deals')}`}>Deals</Link>
             <Link to="/about" className={`nav-link ${isActive('/about')}`}>About</Link>
             <Link to="/contact" className={`nav-link ${isActive('/contact')}`}>Contact</Link>
-            {isAdmin && <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard')}`}>Admin</Link>}
-            {isChef && <Link to="/chef/dashboard" className={`nav-link ${isActive('/chef/dashboard')}`}>Chef</Link>}
-            {isRider && <Link to="/rider/dashboard" className={`nav-link ${isActive('/rider/dashboard')}`}>Rider</Link>}
           </nav>
           
           {/* Actions */}
           <div className="header-actions">
-            {currentUser ? (
+            {isAdmin ? (
+              <Link to="/admin/dashboard" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', background: 'var(--primary)', borderRadius: '50%', display: 'inline-block' }}></span>
+                <span>Admin Panel</span>
+              </Link>
+            ) : isChef ? (
+              <Link to="/chef/dashboard" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', background: 'var(--accent-green)', borderRadius: '50%', display: 'inline-block' }}></span>
+                <span>Chef Panel</span>
+              </Link>
+            ) : isRider ? (
+              <Link to="/rider/dashboard" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', background: '#3b82f6', borderRadius: '50%', display: 'inline-block' }}></span>
+                <span>Rider Panel</span>
+              </Link>
+            ) : currentUser ? (
               <Link to="/profile" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ width: '8px', height: '8px', background: 'var(--accent-green)', borderRadius: '50%', display: 'inline-block' }}></span>
                 <span>{currentUser.name.split(' ')[0]}</span>
@@ -94,10 +106,13 @@ export const Header: React.FC = () => {
             <Link to="/deals" className={`nav-link ${isActive('/deals')}`} onClick={toggleMobileMenu}>Deals</Link>
             <Link to="/about" className={`nav-link ${isActive('/about')}`} onClick={toggleMobileMenu}>About</Link>
             <Link to="/contact" className={`nav-link ${isActive('/contact')}`} onClick={toggleMobileMenu}>Contact</Link>
-            {isAdmin && <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard')}`} onClick={toggleMobileMenu}>Admin Portal</Link>}
-            {isChef && <Link to="/chef/dashboard" className={`nav-link ${isActive('/chef/dashboard')}`} onClick={toggleMobileMenu}>Chef Portal</Link>}
-            {isRider && <Link to="/rider/dashboard" className={`nav-link ${isActive('/rider/dashboard')}`} onClick={toggleMobileMenu}>Rider Portal</Link>}
-            {currentUser ? (
+            {isAdmin ? (
+              <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard')}`} onClick={toggleMobileMenu}>Admin Panel</Link>
+            ) : isChef ? (
+              <Link to="/chef/dashboard" className={`nav-link ${isActive('/chef/dashboard')}`} onClick={toggleMobileMenu}>Chef Panel</Link>
+            ) : isRider ? (
+              <Link to="/rider/dashboard" className={`nav-link ${isActive('/rider/dashboard')}`} onClick={toggleMobileMenu}>Rider Panel</Link>
+            ) : currentUser ? (
               <Link to="/profile" className={`nav-link ${isActive('/profile')}`} onClick={toggleMobileMenu}>My Profile ({currentUser.name})</Link>
             ) : (
               <Link to="/login" className={`nav-link ${isActive('/login')}`} onClick={toggleMobileMenu}>Sign In / Sign Up</Link>

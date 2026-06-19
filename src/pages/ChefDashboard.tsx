@@ -19,7 +19,7 @@ export const ChefDashboard: React.FC = () => {
   useEffect(() => {
     const session = sessionStorage.getItem('burgerhub_active_chef') || localStorage.getItem('burgerhub_active_chef');
     if (!session) {
-      navigate('/chef/login');
+      navigate('/login');
       return;
     }
     const chefObj = JSON.parse(session);
@@ -44,7 +44,7 @@ export const ChefDashboard: React.FC = () => {
   const handleLogout = () => {
     sessionStorage.removeItem('burgerhub_active_chef');
     localStorage.removeItem('burgerhub_active_chef');
-    navigate('/chef/login');
+    navigate('/login');
   };
 
   const handleStartCooking = (orderId: string) => {

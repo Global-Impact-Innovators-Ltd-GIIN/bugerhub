@@ -13,6 +13,7 @@ export const UserSignup: React.FC = () => {
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [zipCode, setZipCode] = useState('');
+  const [addressComponents, setAddressComponents] = useState<any>(null);
   const [keepMeLoggedIn, setKeepMeLoggedIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -31,10 +32,13 @@ export const UserSignup: React.FC = () => {
     }
   }, [navigate]);
 
-  const handleLocationSelected = (fullAddr: string, selectedDistrict: string, _coordsStr: string) => {
+  const handleLocationSelected = (fullAddr: string, selectedDistrict: string, _coordsStr: string, details?: any) => {
     setAddress(fullAddr);
     setCity(`${selectedDistrict} District, Rwanda`);
     setZipCode('250');
+    if (details) {
+      setAddressComponents(details);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -69,6 +73,14 @@ export const UserSignup: React.FC = () => {
 
     // Auto-login (save without password)
     const { password: _, ...sessionUser } = newUser;
+
+    // Prevent security leaks - clear administrative/staff sessions
+    localStorage.removeItem('burgerhub_active_admin');
+    sessionStorage.removeItem('burgerhub_active_admin');
+    localStorage.removeItem('burgerhub_active_chef');
+    sessionStorage.removeItem('burgerhub_active_chef');
+    localStorage.removeItem('burgerhub_active_rider');
+    sessionStorage.removeItem('burgerhub_active_rider');
     
     if (keepMeLoggedIn) {
       localStorage.setItem('burgerhub_active_user', JSON.stringify(sessionUser));
@@ -237,6 +249,31 @@ export const UserSignup: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {addressComponents && (
+                <div className="pinned-location-details-section animate-fade-in" style={{
+                  marginTop: '15px',
+                  padding: '15px',
+                  background: 'rgba(255, 69, 0, 0.03)',
+                  border: '1px solid rgba(255, 69, 0, 0.15)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '12px'
+                }}>
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    📍 Verified Address Breakdown
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 15px' }}>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Province:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.province}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>City/District:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.city}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Cell:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.cell || '-'}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Village:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.village || '-'}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Community:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.community || '-'}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Street:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.street || '-'}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>House No:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.houseNumber || '-'}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Country:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.country}</strong></div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Keep me logged in checkbox */}

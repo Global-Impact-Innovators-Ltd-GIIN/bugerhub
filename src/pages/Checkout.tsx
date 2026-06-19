@@ -25,6 +25,7 @@ export const Checkout: React.FC = () => {
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [zipCode, setZipCode] = useState('');
+  const [addressComponents, setAddressComponents] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'cash' | 'momo'>('stripe');
 
   // Credit Card Form State
@@ -138,10 +139,13 @@ export const Checkout: React.FC = () => {
   };
 
   // Callback for Rwanda map location pinning
-  const handleLocationSelected = (fullAddr: string, selectedDistrict: string, _coordsStr: string) => {
+  const handleLocationSelected = (fullAddr: string, selectedDistrict: string, _coordsStr: string, details?: any) => {
     setAddress(fullAddr);
     setCity(`${selectedDistrict} District, Rwanda`);
     setZipCode('250');
+    if (details) {
+      setAddressComponents(details);
+    }
   };
 
   // Helper: Format card number with spaces every 4 digits
@@ -595,6 +599,31 @@ export const Checkout: React.FC = () => {
                     />
                   </div>
                 </div>
+
+                {addressComponents && (
+                  <div className="pinned-location-details-section animate-fade-in" style={{
+                    marginTop: '15px',
+                    padding: '15px',
+                    background: 'rgba(255, 69, 0, 0.03)',
+                    border: '1px solid rgba(255, 69, 0, 0.15)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '12px'
+                  }}>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: 700, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      📍 Verified Address Breakdown
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 15px' }}>
+                      <div><span style={{ color: 'var(--text-muted)' }}>Province:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.province}</strong></div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>City/District:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.city}</strong></div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>Cell:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.cell || '-'}</strong></div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>Village:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.village || '-'}</strong></div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>Community:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.community || '-'}</strong></div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>Street:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.street || '-'}</strong></div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>House No:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.houseNumber || '-'}</strong></div>
+                      <div><span style={{ color: 'var(--text-muted)' }}>Country:</span> <strong style={{ color: 'var(--text-primary)' }}>{addressComponents.country}</strong></div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

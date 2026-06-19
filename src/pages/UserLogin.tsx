@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Lock, Mail, ShieldAlert, UserCheck, Eye, EyeOff } from 'lucide-react';
-import { fetchUsers } from '../utils/supabaseDb';
+import { fetchUsers, fetchAdmins, fetchChefs, fetchRiders } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 
 export const UserLogin: React.FC = () => {
@@ -18,27 +18,27 @@ export const UserLogin: React.FC = () => {
   const redirectPath = queryParams.get('redirect') || '/';
 
   useEffect(() => {
-    // Seed default customer if none exists
-    const existing = localStorage.getItem('burgerhub_users');
-    if (!existing) {
-      const defaultUsers = [
-        {
-          id: 'U1',
-          name: 'John Doe',
-          email: 'customer@burgerhub.com',
-          password: 'customer123',
-          phone: '+250 788 123 456',
-          address: 'Kigali Province, Nyarugenge District (Map Pin: 1.9441° S, 30.0619° E)',
-          city: 'Nyarugenge District, Rwanda',
-          zipCode: '250'
-        }
-      ];
-      localStorage.setItem('burgerhub_users', JSON.stringify(defaultUsers));
+    // Check if any role is already logged in, redirect them appropriately
+    const adminSession = localStorage.getItem('burgerhub_active_admin') || sessionStorage.getItem('burgerhub_active_admin');
+    if (adminSession) {
+      navigate('/admin/dashboard');
+      return;
     }
 
-    // Check active session across both local and session storage
-    const activeSession = localStorage.getItem('burgerhub_active_user') || sessionStorage.getItem('burgerhub_active_user');
-    if (activeSession) {
+    const chefSession = localStorage.getItem('burgerhub_active_chef') || sessionStorage.getItem('burgerhub_active_chef');
+    if (chefSession) {
+      navigate('/chef/dashboard');
+      return;
+    }
+
+    const riderSession = localStorage.getItem('burgerhub_active_rider') || sessionStorage.getItem('burgerhub_active_rider');
+    if (riderSession) {
+      navigate('/rider/dashboard');
+      return;
+    }
+
+    const userSession = localStorage.getItem('burgerhub_active_user') || sessionStorage.getItem('burgerhub_active_user');
+    if (userSession) {
       navigate('/');
     }
   }, [navigate]);
@@ -47,13 +47,107 @@ export const UserLogin: React.FC = () => {
     e.preventDefault();
     setError('');
 
+    const trimmedEmail = email.toLowerCase().trim();
+
+    // 1. Check Admin Credentials
+    const admins = await fetchAdmins();
+    const matchedAdmin = admins.find((a: any) => a.email.toLowerCase() === trimmedEmail && a.password === password);
+
+    if (matchedAdmin) {
+      const adminSessionData = JSON.stringify({ email: matchedAdmin.email, name: matchedAdmin.name });
+      
+      // Prevent security leaks - clear other role sessions
+      localStorage.removeItem('burgerhub_active_user');
+      sessionStorage.removeItem('burgerhub_active_user');
+      localStorage.removeItem('burgerhub_active_chef');
+      sessionStorage.removeItem('burgerhub_active_chef');
+      localStorage.removeItem('burgerhub_active_rider');
+      sessionStorage.removeItem('burgerhub_active_rider');
+
+      if (keepMeLoggedIn) {
+        localStorage.setItem('burgerhub_active_admin', adminSessionData);
+        sessionStorage.removeItem('burgerhub_active_admin');
+      } else {
+        sessionStorage.setItem('burgerhub_active_admin', adminSessionData);
+        localStorage.removeItem('burgerhub_active_admin');
+      }
+      
+      navigate('/admin/dashboard');
+      window.location.reload(); // Refresh to update header state
+      return;
+    }
+
+    // 2. Check Chef Credentials
+    const chefs = await fetchChefs();
+    const matchedChef = chefs.find((c: any) => c.email.toLowerCase() === trimmedEmail && c.password === password);
+
+    if (matchedChef) {
+      const chefSessionData = JSON.stringify(matchedChef);
+
+      // Prevent security leaks - clear other role sessions
+      localStorage.removeItem('burgerhub_active_user');
+      sessionStorage.removeItem('burgerhub_active_user');
+      localStorage.removeItem('burgerhub_active_admin');
+      sessionStorage.removeItem('burgerhub_active_admin');
+      localStorage.removeItem('burgerhub_active_rider');
+      sessionStorage.removeItem('burgerhub_active_rider');
+
+      if (keepMeLoggedIn) {
+        localStorage.setItem('burgerhub_active_chef', chefSessionData);
+        sessionStorage.removeItem('burgerhub_active_chef');
+      } else {
+        sessionStorage.setItem('burgerhub_active_chef', chefSessionData);
+        localStorage.removeItem('burgerhub_active_chef');
+      }
+      
+      navigate('/chef/dashboard');
+      window.location.reload(); // Refresh to update header state
+      return;
+    }
+
+    // 3. Check Rider Credentials
+    const riders = await fetchRiders();
+    const matchedRider = riders.find((r: any) => r.email.toLowerCase() === trimmedEmail && r.password === password);
+
+    if (matchedRider) {
+      const riderSessionData = JSON.stringify(matchedRider);
+
+      // Prevent security leaks - clear other role sessions
+      localStorage.removeItem('burgerhub_active_user');
+      sessionStorage.removeItem('burgerhub_active_user');
+      localStorage.removeItem('burgerhub_active_admin');
+      sessionStorage.removeItem('burgerhub_active_admin');
+      localStorage.removeItem('burgerhub_active_chef');
+      sessionStorage.removeItem('burgerhub_active_chef');
+
+      if (keepMeLoggedIn) {
+        localStorage.setItem('burgerhub_active_rider', riderSessionData);
+        sessionStorage.removeItem('burgerhub_active_rider');
+      } else {
+        sessionStorage.setItem('burgerhub_active_rider', riderSessionData);
+        localStorage.removeItem('burgerhub_active_rider');
+      }
+      
+      navigate('/rider/dashboard');
+      window.location.reload(); // Refresh to update header state
+      return;
+    }
+
+    // 4. Check Customer/User Credentials
     const users = await fetchUsers();
-    const matchedUser = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase().trim() && u.password === password);
+    const matchedUser = users.find((u: any) => u.email.toLowerCase() === trimmedEmail && u.password === password);
 
     if (matchedUser) {
-      // Remove password for security in session storage
       const { password: _, ...sessionUser } = matchedUser;
-      
+
+      // Prevent security leaks - clear administrative sessions
+      localStorage.removeItem('burgerhub_active_admin');
+      sessionStorage.removeItem('burgerhub_active_admin');
+      localStorage.removeItem('burgerhub_active_chef');
+      sessionStorage.removeItem('burgerhub_active_chef');
+      localStorage.removeItem('burgerhub_active_rider');
+      sessionStorage.removeItem('burgerhub_active_rider');
+
       if (keepMeLoggedIn) {
         localStorage.setItem('burgerhub_active_user', JSON.stringify(sessionUser));
         sessionStorage.removeItem('burgerhub_active_user');
@@ -63,9 +157,11 @@ export const UserLogin: React.FC = () => {
       }
       
       navigate(redirectPath);
-    } else {
-      setError('Invalid email or password. Please use pre-configured details or sign up.');
+      window.location.reload(); // Refresh to update header state
+      return;
     }
+
+    setError('Invalid email or password. Please use correct credentials to access your specific portal.');
   };
 
   return (
@@ -76,8 +172,8 @@ export const UserLogin: React.FC = () => {
             <UserCheck size={28} className="color-primary animate-float" />
           </div>
           
-          <h2>CUSTOMER LOGIN</h2>
-          <p className="auth-subtitle">Log in to your account for seamless purchases and order tracking</p>
+          <h2>BURGERHUB SIGN IN</h2>
+          <p className="auth-subtitle">Use your credentials to sign in and access your portal dashboard</p>
 
           <form onSubmit={handleLogin} className="auth-form mt-4">
             {error && (
@@ -93,7 +189,7 @@ export const UserLogin: React.FC = () => {
                 <input
                   type="email"
                   required
-                  placeholder="customer@burgerhub.com"
+                  placeholder="customer@burgerhub.com, admin@burgerhub.com..."
                   className="form-input auth-input"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -154,18 +250,22 @@ export const UserLogin: React.FC = () => {
             </div>
 
             <button type="submit" className="btn btn-primary auth-submit-btn mt-4">
-              Log In
+              Sign In
             </button>
 
             <div className="auth-footer-links mt-4">
-              <span>Don't have an account? </span>
+              <span>Don't have a customer account? </span>
               <Link to={`/signup${location.search}`} className="orange-link font-semibold">Sign Up Here</Link>
             </div>
 
-            <div className="demo-credentials-helper mt-4">
-              <p>💡 **Customer Sandbox Credentials:**</p>
-              <p>Email: <span className="font-orange">customer@burgerhub.com</span></p>
-              <p>Pass: <span className="font-orange">customer123</span></p>
+            <div className="demo-credentials-helper mt-4" style={{ textAlign: 'left', background: 'rgba(255,255,255,0.01)', padding: '15px', borderRadius: 'var(--radius-md)' }}>
+              <p style={{ fontWeight: 700, marginBottom: '6px' }}>💡 Demo Sandbox logins:</p>
+              <ul style={{ paddingLeft: '20px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <li><strong>Admin</strong>: admin@burgerhub.com (admin123)</li>
+                <li><strong>Chef</strong>: chef1@burgerhub.com (chef123)</li>
+                <li><strong>Rider</strong>: rider1@burgerhub.com (rider123)</li>
+                <li><strong>Customer</strong>: customer@burgerhub.com (customer123)</li>
+              </ul>
             </div>
           </form>
         </div>

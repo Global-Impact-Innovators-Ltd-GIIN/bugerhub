@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, ShoppingBag, Truck, Check, Clock, 
   MapPin, ClipboardList, Plus, ShieldCheck, LogOut, 
-  ChefHat, Bike, Eye, ChevronRight, X
+  ChefHat, Bike, Eye, ChevronRight, X, Users, Lock, Settings
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import type { Order } from '../context/CartContext';
@@ -12,7 +12,7 @@ import {
   fetchChefs, saveChefs, removeChef, fetchRiders, saveRiders, removeRider,
   fetchUsers, saveUser, removeUser, fetchMenuCategories, 
   saveMenuCategories, removeMenuCategory, fetchMenuItems, 
-  saveMenuItem, removeMenuItem, fetchAdmins 
+  saveMenuItem, removeMenuItem, fetchAdmins, saveAdmin
 } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 
@@ -47,9 +47,19 @@ export const AdminDashboard: React.FC = () => {
   // Menu and Categories states
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [admins, setAdmins] = useState<any[]>([]);
   
   // Tab state
-  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'users'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'chefs' | 'riders' | 'menu' | 'users' | 'access'>('orders');
+
+  // System Overrides State
+  const [systemLockout, setSystemLockout] = useState(false);
+  const [autoAssignment, setAutoAssignment] = useState(true);
+
+  // New Admin states
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
 
   // Input states for new category
   const [newCatId, setNewCatId] = useState('');
@@ -95,7 +105,7 @@ export const AdminDashboard: React.FC = () => {
     // Strict Authentication Guard
     const session = sessionStorage.getItem('burgerhub_active_admin') || localStorage.getItem('burgerhub_active_admin');
     if (!session) {
-      navigate('/admin/login');
+      navigate('/login');
       return;
     }
     const adminObj = JSON.parse(session);
@@ -103,11 +113,12 @@ export const AdminDashboard: React.FC = () => {
     // Check if admin is valid in the database
     const verifyAndLoad = async () => {
       const admins = await fetchAdmins();
+      setAdmins(admins);
       const verifiedAdmin = admins.find((a: any) => a.email.toLowerCase() === adminObj.email?.toLowerCase());
       if (!verifiedAdmin) {
         sessionStorage.removeItem('burgerhub_active_admin');
         localStorage.removeItem('burgerhub_active_admin');
-        navigate('/admin/login');
+        navigate('/login');
         return;
       }
       setAdminName(verifiedAdmin.name || 'Admin');
@@ -237,7 +248,7 @@ export const AdminDashboard: React.FC = () => {
       id: newItemName.trim().toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(100 + Math.random() * 900),
       name: newItemName.trim(),
       description: newItemDesc.trim(),
-      price: priceNum,
+      price: priceNum / EXCHANGE_RATE,
       category: newItemCategory,
       image: finalImage
     };
@@ -385,10 +396,35 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleAddAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminName.trim() || !newAdminEmail.trim() || !newAdminPassword.trim()) return;
+
+    if (admins.some(a => a.email.toLowerCase() === newAdminEmail.trim().toLowerCase())) {
+      alert('This admin email is already registered!');
+      return;
+    }
+
+    const newAdmin = {
+      name: newAdminName.trim(),
+      email: newAdminEmail.trim().toLowerCase(),
+      password: newAdminPassword.trim()
+    };
+    
+    const updated = [...admins, newAdmin];
+    setAdmins(updated);
+    await saveAdmin(newAdmin);
+    
+    setNewAdminName('');
+    setNewAdminEmail('');
+    setNewAdminPassword('');
+    alert('Administrative access granted successfully!');
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem('burgerhub_active_admin');
     localStorage.removeItem('burgerhub_active_admin');
-    navigate('/admin/login');
+    navigate('/login');
   };
 
   // Update order status and manage staff bindings
@@ -462,373 +498,386 @@ export const AdminDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="admin-dashboard-page animate-fade-in">
-      <div className="admin-header-bar">
-        <div className="container header-flex-row">
-          <div className="admin-branding">
-            <span className="admin-badge"><ShieldCheck size={14} /> Master Panel</span>
-            <h2>Welcome Back, <span className="text-gradient-orange">{adminName}</span></h2>
+    <div className="admin-dashboard-layout animate-fade-in">
+      {/* Fixed Left Sidebar Navigation */}
+      <aside className="admin-sidebar">
+        <div className="admin-sidebar-brand">
+          <div className="admin-sidebar-logo">B</div>
+          <span className="admin-sidebar-brand-text">BURGER<span className="color-orange">HUB</span></span>
+        </div>
+
+        <div className="admin-sidebar-user">
+          <div className="admin-sidebar-avatar">
+            {adminName.charAt(0).toUpperCase()}
           </div>
-          <button onClick={handleLogout} className="btn btn-secondary logout-btn">
-            <LogOut size={16} /> Logout
-          </button>
+          <div className="admin-sidebar-user-info">
+            <span className="admin-sidebar-user-name">{adminName}</span>
+            <span className="admin-sidebar-user-role">Master Administrator</span>
+          </div>
         </div>
-      </div>
 
-      {/* Sub Header / Tabs Navigation */}
-      <div className="container mt-4">
-        <div className="admin-tab-bar" style={{ display: 'flex', gap: '15px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
+        <nav className="admin-sidebar-menu">
           <button 
-            className={`admin-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+            className={`admin-sidebar-item ${activeTab === 'orders' ? 'active' : ''}`}
             onClick={() => setActiveTab('orders')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: activeTab === 'orders' ? 'var(--primary)' : 'var(--text-secondary)',
-              fontSize: '16px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              padding: '10px 20px',
-              borderBottom: activeTab === 'orders' ? '2px solid var(--primary)' : 'none',
-              transition: 'all 0.2s'
-            }}
           >
-            Live Orders & Staff
+            <ClipboardList size={16} /> Live Orders Kanban
           </button>
           <button 
-            className={`admin-tab-btn ${activeTab === 'menu' ? 'active' : ''}`}
+            className={`admin-sidebar-item ${activeTab === 'chefs' ? 'active' : ''}`}
+            onClick={() => setActiveTab('chefs')}
+          >
+            <ChefHat size={16} /> Kitchen Chefs Crew
+          </button>
+          <button 
+            className={`admin-sidebar-item ${activeTab === 'riders' ? 'active' : ''}`}
+            onClick={() => setActiveTab('riders')}
+          >
+            <Bike size={16} /> Courier Riders Fleet
+          </button>
+          <button 
+            className={`admin-sidebar-item ${activeTab === 'menu' ? 'active' : ''}`}
             onClick={() => setActiveTab('menu')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: activeTab === 'menu' ? 'var(--primary)' : 'var(--text-secondary)',
-              fontSize: '16px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              padding: '10px 20px',
-              borderBottom: activeTab === 'menu' ? '2px solid var(--primary)' : 'none',
-              transition: 'all 0.2s'
-            }}
           >
-            Menu & Category Manager
+            <ShoppingBag size={16} /> Menu & Categories
           </button>
           <button 
-            className={`admin-tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+            className={`admin-sidebar-item ${activeTab === 'users' ? 'active' : ''}`}
             onClick={() => setActiveTab('users')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: activeTab === 'users' ? 'var(--primary)' : 'var(--text-secondary)',
-              fontSize: '16px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              padding: '10px 20px',
-              borderBottom: activeTab === 'users' ? '2px solid var(--primary)' : 'none',
-              transition: 'all 0.2s'
-            }}
           >
-            User Accounts Database
+            <Users size={16} /> Customer Directory
+          </button>
+          <button 
+            className={`admin-sidebar-item ${activeTab === 'access' ? 'active' : ''}`}
+            onClick={() => setActiveTab('access')}
+          >
+            <Lock size={16} /> Access Controls
+          </button>
+        </nav>
+
+        <div className="admin-sidebar-footer">
+          <button onClick={handleLogout} className="admin-sidebar-logout-btn">
+            <LogOut size={16} /> Logout Panel
           </button>
         </div>
-      </div>
+      </aside>
 
-      <div className="container main-admin-container mt-4">
+      {/* Main Panel Content Area */}
+      <main className="admin-main-content">
+        
+        {/* Global Overview Metrics */}
+        <div className="admin-stats-grid mb-5">
+          <div className="stat-card card">
+            <div className="stat-icon-box bg-orange-dim">
+              <TrendingUp className="color-orange" size={20} />
+            </div>
+            <div className="stat-details">
+              <span className="stat-title">Total Revenue</span>
+              <h3>{totalRevenueRWF.toLocaleString()} RWF</h3>
+              <p className="stat-subtitle">${totalRevenueUSD.toFixed(2)} USD Equivalent</p>
+            </div>
+          </div>
+
+          <div className="stat-card card">
+            <div className="stat-icon-box bg-red-dim">
+              <ShoppingBag className="color-red" size={20} />
+            </div>
+            <div className="stat-details">
+              <span className="stat-title">Active Logged Orders</span>
+              <h3>{activeOrdersCount} Orders</h3>
+              <p className="stat-subtitle">{orders.length} total orders history</p>
+            </div>
+          </div>
+
+          <div className="stat-card card">
+            <div className="stat-icon-box bg-white-dim">
+              <ChefHat className="color-white" size={20} />
+            </div>
+            <div className="stat-details">
+              <span className="stat-title">Kitchen Crew</span>
+              <h3>{chefs.length - busyChefsCount} / {chefs.length} Idle</h3>
+              <p className="stat-subtitle">{busyChefsCount} chefs actively cooking</p>
+            </div>
+          </div>
+
+          <div className="stat-card card">
+            <div className="stat-icon-box bg-blue-dim">
+              <Truck className="color-blue" size={20} />
+            </div>
+            <div className="stat-details">
+              <span className="stat-title">Riders Fleet</span>
+              <h3>{riders.length - busyRidersCount} / {riders.length} Idle</h3>
+              <p className="stat-subtitle">{busyRidersCount} riders in transit</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab 1: Live Orders Kanban Queue */}
         {activeTab === 'orders' && (
-          <>
-            {/* Stats Row Widgets */}
-            <div className="admin-stats-grid">
-              <div className="stat-card card">
-                <div className="stat-icon-box bg-orange-dim">
-                  <TrendingUp className="color-orange" size={20} />
-                </div>
-                <div className="stat-details">
-                  <span className="stat-title">Total Revenue</span>
-                  <h3>{totalRevenueRWF.toLocaleString()} RWF</h3>
-                  <p className="stat-subtitle">${totalRevenueUSD.toFixed(2)} USD Equivalent</p>
-                </div>
-              </div>
+          <div className="kanban-section animate-fade-in">
+            <h3 className="section-title text-gradient">Live Kitchen Queue Monitor</h3>
+            
+            <div className="kanban-grid mt-4">
+              {columns.map(col => {
+                const colOrders = orders.filter(o => o.status === col.status);
+                const ColIcon = col.icon;
+                return (
+                  <div className={`kanban-column card ${col.colorClass}`} key={col.status}>
+                    <div className="kanban-column-header">
+                      <ColIcon size={18} className="column-icon" />
+                      <h4>{col.title}</h4>
+                      <span className="kanban-count-badge">{colOrders.length}</span>
+                    </div>
 
-              <div className="stat-card card">
-                <div className="stat-icon-box bg-red-dim">
-                  <ShoppingBag className="color-red" size={20} />
-                </div>
-                <div className="stat-details">
-                  <span className="stat-title">Active Logged Orders</span>
-                  <h3>{activeOrdersCount} Orders</h3>
-                  <p className="stat-subtitle">{orders.length} total orders history</p>
-                </div>
-              </div>
-
-              <div className="stat-card card">
-                <div className="stat-icon-box bg-white-dim">
-                  <ChefHat className="color-white" size={20} />
-                </div>
-                <div className="stat-details">
-                  <span className="stat-title">Kitchen Crew</span>
-                  <h3>{chefs.length - busyChefsCount} / {chefs.length} Idle</h3>
-                  <p className="stat-subtitle">{busyChefsCount} chefs actively cooking</p>
-                </div>
-              </div>
-
-              <div className="stat-card card">
-                <div className="stat-icon-box bg-blue-dim">
-                  <Truck className="color-blue" size={20} />
-                </div>
-                <div className="stat-details">
-                  <span className="stat-title">Riders Courier Fleet</span>
-                  <h3>{riders.length - busyRidersCount} / {riders.length} Idle</h3>
-                  <p className="stat-subtitle">{busyRidersCount} riders in transit</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Live Kanban Board */}
-            <div className="kanban-section mt-5">
-              <h3 className="section-title text-gradient">Live Kitchen Queue monitor</h3>
-              
-              <div className="kanban-grid mt-4">
-                {columns.map(col => {
-                  const colOrders = orders.filter(o => o.status === col.status);
-                  const ColIcon = col.icon;
-                  return (
-                    <div className={`kanban-column card ${col.colorClass}`} key={col.status}>
-                      <div className="kanban-column-header">
-                        <ColIcon size={18} className="column-icon" />
-                        <h4>{col.title}</h4>
-                        <span className="kanban-count-badge">{colOrders.length}</span>
-                      </div>
-
-                      <div className="kanban-cards-wrapper mt-3">
-                        {colOrders.length === 0 ? (
-                          <div className="empty-column-placeholder">
-                            <Clock size={28} className="muted-icon" />
-                            <p>No orders in queue</p>
-                          </div>
-                        ) : (
-                          colOrders.map(order => (
-                            <div className="kanban-order-card" key={order.id}>
-                              <div className="kanban-card-top">
-                                <span className="order-id">{order.id}</span>
-                                <span className="order-time">{order.date.split(',')[1]?.trim() || order.date}</span>
-                              </div>
-                              
-                              <div className="kanban-card-body mt-2">
-                                <strong>{order.details.name}</strong>
-                                <p className="text-truncate">{order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</p>
-                              </div>
-
-                              <div className="kanban-card-footer mt-3 border-t pt-2">
-                                <button 
-                                  onClick={() => setSelectedOrder(order)}
-                                  className="btn-link icon-btn"
-                                  title="View Order Details"
-                                >
-                                  <Eye size={16} /> Details
-                                </button>
-                                
-                                {order.status !== 'delivered' && (
-                                  <button 
-                                    onClick={() => handleStatusTransition(order.id, order.status)}
-                                    className="btn btn-primary next-status-btn"
-                                  >
-                                    {order.status === 'preparing' && 'Cook Patty'}
-                                    {order.status === 'cooking' && 'Dispatch'}
-                                    {order.status === 'delivering' && 'Arrived'} <ChevronRight size={14} />
-                                  </button>
-                                )}
-                              </div>
+                    <div className="kanban-cards-wrapper mt-3">
+                      {colOrders.length === 0 ? (
+                        <div className="empty-column-placeholder">
+                          <Clock size={28} className="muted-icon" />
+                          <p>No orders in queue</p>
+                        </div>
+                      ) : (
+                        colOrders.map(order => (
+                          <div className="kanban-order-card" key={order.id}>
+                            <div className="kanban-card-top">
+                              <span className="order-id">{order.id}</span>
+                              <span className="order-time">{order.date.split(',')[1]?.trim() || order.date}</span>
                             </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                            
+                            <div className="kanban-card-body mt-2">
+                              <strong>{order.details.name}</strong>
+                              <p className="text-truncate">{order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</p>
+                            </div>
 
-            {/* Staff Management Grids */}
-            <div className="staff-management-section mt-5 pt-3">
-              <div className="staff-layout-grid">
-                
-                {/* Chef Management Card */}
-                <div className="staff-management-card card">
-                  <div className="staff-card-header mb-3">
-                    <ChefHat className="color-orange" size={22} />
-                    <h4>Manage Kitchen Chefs</h4>
-                  </div>
-
-                  <form onSubmit={handleAddChef} className="add-staff-form mb-4" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                      <input 
-                        type="text" 
-                        placeholder="Chef's Name..."
-                        className="form-input text-sm"
-                        value={newChefName}
-                        onChange={(e) => setNewChefName(e.target.value)}
-                        required
-                      />
-                      <input 
-                        type="email" 
-                        placeholder="Email..."
-                        className="form-input text-sm"
-                        value={newChefEmail}
-                        onChange={(e) => setNewChefEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px' }}>
-                      <input 
-                        type="password" 
-                        placeholder="Password..."
-                        className="form-input text-sm"
-                        value={newChefPassword}
-                        onChange={(e) => setNewChefPassword(e.target.value)}
-                        required
-                      />
-                      <button type="submit" className="btn btn-primary add-staff-btn" style={{ whiteSpace: 'nowrap' }}>
-                        <Plus size={16} /> Add Chef
-                      </button>
-                    </div>
-                  </form>
-
-                  <div className="staff-list">
-                    {chefs.length === 0 ? (
-                      <p className="text-center text-sm text-muted">No chefs registered.</p>
-                    ) : (
-                      chefs.map(chef => (
-                        <div className="staff-item" key={chef.id}>
-                          <div className="staff-details">
-                            <span className="staff-id">{chef.id}</span>
-                            <div>
-                              <strong>{chef.name}</strong>
-                              <span className="text-xs text-muted" style={{ display: 'block', opacity: 0.7 }}>{chef.email}</span>
-                              {chef.assignedOrderId && (
-                                <span className="assigned-tag">Cooking: {chef.assignedOrderId}</span>
+                            <div className="kanban-card-footer mt-3 border-t pt-2">
+                              <button 
+                                onClick={() => setSelectedOrder(order)}
+                                className="btn-link icon-btn"
+                                title="View Order Details"
+                              >
+                                <Eye size={16} /> Details
+                              </button>
+                              
+                              {order.status !== 'delivered' && (
+                                <button 
+                                  onClick={() => handleStatusTransition(order.id, order.status)}
+                                  className="btn btn-primary next-status-btn"
+                                >
+                                  {order.status === 'preparing' && 'Cook Patty'}
+                                  {order.status === 'cooking' && 'Dispatch'}
+                                  {order.status === 'delivering' && 'Arrived'} <ChevronRight size={14} />
+                                </button>
                               )}
                             </div>
                           </div>
-                          <div className="staff-actions">
-                            <button 
-                              onClick={() => toggleStaffStatus(chef.id, 'chef')}
-                              className={`status-pill ${chef.status === 'idle' ? 'idle' : 'busy'}`}
-                            >
-                              {chef.status.toUpperCase()}
-                            </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Kitchen Chefs Crew */}
+        {activeTab === 'chefs' && (
+          <div className="staff-management-section animate-fade-in">
+            <h3 className="section-title text-gradient mb-4">Kitchen Staff Management</h3>
+            
+            <div className="staff-management-card card" style={{ padding: '24px' }}>
+              <div className="staff-card-header mb-3" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ChefHat className="color-orange" size={22} />
+                <h4 style={{ margin: 0 }}>Add Kitchen Chef Account</h4>
+              </div>
+
+              <form onSubmit={handleAddChef} className="add-staff-form mb-4" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Chef's Full Name..."
+                    className="form-input text-sm"
+                    value={newChefName}
+                    onChange={(e) => setNewChefName(e.target.value)}
+                    required
+                  />
+                  <input 
+                    type="email" 
+                    placeholder="Chef Email Address..."
+                    className="form-input text-sm"
+                    value={newChefEmail}
+                    onChange={(e) => setNewChefEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px' }}>
+                  <input 
+                    type="password" 
+                    placeholder="System Login Password..."
+                    className="form-input text-sm"
+                    value={newChefPassword}
+                    onChange={(e) => setNewChefPassword(e.target.value)}
+                    required
+                  />
+                  <button type="submit" className="btn btn-primary add-staff-btn" style={{ whiteSpace: 'nowrap' }}>
+                    <Plus size={16} /> Register Chef
+                  </button>
+                </div>
+              </form>
+
+              <h4 className="mt-4 mb-3" style={{ fontSize: '15px', fontWeight: 700 }}>Kitchen Chefs Directory ({chefs.length})</h4>
+              <div className="staff-list" style={{ maxHeight: 'none' }}>
+                {chefs.length === 0 ? (
+                  <p className="text-center text-sm text-muted">No chefs registered.</p>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
+                    {chefs.map(chef => (
+                      <div className="staff-item" key={chef.id} style={{ padding: '15px' }}>
+                        <div className="staff-details">
+                          <span className="staff-id">{chef.id}</span>
+                          <div>
+                            <strong>{chef.name}</strong>
+                            <span className="text-xs text-muted" style={{ display: 'block', opacity: 0.7 }}>{chef.email}</span>
+                            {chef.assignedOrderId && (
+                              <span className="assigned-tag">Cooking: {chef.assignedOrderId}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="staff-actions" style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.02)', width: '100%', justifyContent: 'space-between' }}>
+                          <button 
+                            onClick={() => toggleStaffStatus(chef.id, 'chef')}
+                            className={`status-pill ${chef.status === 'idle' ? 'idle' : 'busy'}`}
+                          >
+                            {chef.status.toUpperCase()}
+                          </button>
+                          <div style={{ display: 'flex', gap: '6px' }}>
                             <button 
                               onClick={() => openEditStaff(chef)}
-                              className="btn-link icon-btn"
-                              style={{ padding: '4px 8px', fontSize: '12px' }}
-                              title="Edit Credentials"
+                              className="btn-link icon-btn text-xs"
+                              style={{ padding: '4px 8px' }}
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleRemoveStaff(chef.id, 'chef')}
                               className="btn-remove"
+                              style={{ background: 'rgba(234, 56, 56, 0.1)', color: 'var(--accent-red)', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px' }}
                             >
                               <X size={14} />
                             </button>
                           </div>
                         </div>
-                      ))
-                    )}
+                      </div>
+                    ))}
                   </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Courier Riders Fleet */}
+        {activeTab === 'riders' && (
+          <div className="staff-management-section animate-fade-in">
+            <h3 className="section-title text-gradient mb-4">Courier Fleet Management</h3>
+
+            <div className="staff-management-card card" style={{ padding: '24px' }}>
+              <div className="staff-card-header mb-3" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Bike className="color-blue" size={22} />
+                <h4 style={{ margin: 0 }}>Add Courier Rider Account</h4>
+              </div>
+
+              <form onSubmit={handleAddRider} className="add-staff-form mb-4" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Rider's Full Name..."
+                    className="form-input text-sm"
+                    value={newRiderName}
+                    onChange={(e) => setNewRiderName(e.target.value)}
+                    required
+                  />
+                  <input 
+                    type="email" 
+                    placeholder="Rider Email Address..."
+                    className="form-input text-sm"
+                    value={newRiderEmail}
+                    onChange={(e) => setNewRiderEmail(e.target.value)}
+                    required
+                  />
                 </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px' }}>
+                  <input 
+                    type="password" 
+                    placeholder="System Login Password..."
+                    className="form-input text-sm"
+                    value={newRiderPassword}
+                    onChange={(e) => setNewRiderPassword(e.target.value)}
+                    required
+                  />
+                  <button type="submit" className="btn btn-primary add-staff-btn" style={{ whiteSpace: 'nowrap' }}>
+                    <Plus size={16} /> Register Rider
+                  </button>
+                </div>
+              </form>
 
-                {/* Rider Management Card */}
-                <div className="staff-management-card card">
-                  <div className="staff-card-header mb-3">
-                    <Bike className="color-blue" size={22} />
-                    <h4>Manage Courier Riders</h4>
-                  </div>
-
-                  <form onSubmit={handleAddRider} className="add-staff-form mb-4" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                      <input 
-                        type="text" 
-                        placeholder="Rider's Name..."
-                        className="form-input text-sm"
-                        value={newRiderName}
-                        onChange={(e) => setNewRiderName(e.target.value)}
-                        required
-                      />
-                      <input 
-                        type="email" 
-                        placeholder="Email..."
-                        className="form-input text-sm"
-                        value={newRiderEmail}
-                        onChange={(e) => setNewRiderEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px' }}>
-                      <input 
-                        type="password" 
-                        placeholder="Password..."
-                        className="form-input text-sm"
-                        value={newRiderPassword}
-                        onChange={(e) => setNewRiderPassword(e.target.value)}
-                        required
-                      />
-                      <button type="submit" className="btn btn-primary add-staff-btn" style={{ whiteSpace: 'nowrap' }}>
-                        <Plus size={16} /> Add Rider
-                      </button>
-                    </div>
-                  </form>
-
-                  <div className="staff-list">
-                    {riders.length === 0 ? (
-                      <p className="text-center text-sm text-muted">No riders registered.</p>
-                    ) : (
-                      riders.map(rider => (
-                        <div className="staff-item" key={rider.id}>
-                          <div className="staff-details">
-                            <span className="staff-id">{rider.id}</span>
-                            <div>
-                              <strong>{rider.name}</strong>
-                              <span className="text-xs text-muted" style={{ display: 'block', opacity: 0.7 }}>{rider.email}</span>
-                              {rider.assignedOrderId && (
-                                <span className="assigned-tag">Delivering: {rider.assignedOrderId}</span>
-                              )}
-                            </div>
+              <h4 className="mt-4 mb-3" style={{ fontSize: '15px', fontWeight: 700 }}>Couriers Directory ({riders.length})</h4>
+              <div className="staff-list" style={{ maxHeight: 'none' }}>
+                {riders.length === 0 ? (
+                  <p className="text-center text-sm text-muted">No riders registered.</p>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
+                    {riders.map(rider => (
+                      <div className="staff-item" key={rider.id} style={{ padding: '15px' }}>
+                        <div className="staff-details">
+                          <span className="staff-id">{rider.id}</span>
+                          <div>
+                            <strong>{rider.name}</strong>
+                            <span className="text-xs text-muted" style={{ display: 'block', opacity: 0.7 }}>{rider.email}</span>
+                            {rider.assignedOrderId && (
+                              <span className="assigned-tag">Delivering: {rider.assignedOrderId}</span>
+                            )}
                           </div>
-                          <div className="staff-actions">
-                            <button 
-                              onClick={() => toggleStaffStatus(rider.id, 'rider')}
-                              className={`status-pill ${rider.status === 'idle' ? 'idle' : 'busy'}`}
-                            >
-                              {rider.status.toUpperCase()}
-                            </button>
+                        </div>
+                        <div className="staff-actions" style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.02)', width: '100%', justifyContent: 'space-between' }}>
+                          <button 
+                            onClick={() => toggleStaffStatus(rider.id, 'rider')}
+                            className={`status-pill ${rider.status === 'idle' ? 'idle' : 'busy'}`}
+                          >
+                            {rider.status.toUpperCase()}
+                          </button>
+                          <div style={{ display: 'flex', gap: '6px' }}>
                             <button 
                               onClick={() => openEditStaff(rider)}
-                              className="btn-link icon-btn"
-                              style={{ padding: '4px 8px', fontSize: '12px' }}
-                              title="Edit Credentials"
+                              className="btn-link icon-btn text-xs"
+                              style={{ padding: '4px 8px' }}
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleRemoveStaff(rider.id, 'rider')}
                               className="btn-remove"
+                              style={{ background: 'rgba(234, 56, 56, 0.1)', color: 'var(--accent-red)', border: 'none', borderRadius: 'var(--radius-sm)', padding: '4px' }}
                             >
                               <X size={14} />
                             </button>
                           </div>
                         </div>
-                      ))
-                    )}
+                      </div>
+                    ))}
                   </div>
-                </div>
-
+                )}
               </div>
             </div>
-          </>
+          </div>
         )}
 
+        {/* Tab 4: Menu & Category Manager */}
         {activeTab === 'menu' && (
-          <div className="menu-management-section animate-fade-in mt-4">
+          <div className="menu-management-section animate-fade-in">
+            <h3 className="section-title text-gradient mb-4 font-bold">Food Menu & Categories Manager</h3>
+            
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px', alignItems: 'start' }}>
+              
               {/* Category Management Card */}
               <div className="card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
@@ -838,7 +887,7 @@ export const AdminDashboard: React.FC = () => {
 
                 <form onSubmit={handleAddCategory} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                   <div>
-                    <label className="text-xs text-muted mb-1 block">Category ID (e.g. burgers, sides)</label>
+                    <label className="text-xs text-muted mb-1 block">Category ID (e.g. pizzas, sides)</label>
                     <input 
                       type="text" 
                       placeholder="e.g. pizzas"
@@ -934,11 +983,11 @@ export const AdminDashboard: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted mb-1 block">Price ($ USD)</label>
+                      <label className="text-xs text-muted mb-1 block">Price (RWF)</label>
                       <input 
                         type="number" 
-                        step="0.01"
-                        placeholder="e.g. 12.99"
+                        step="1"
+                        placeholder="e.g. 8500"
                         className="form-input text-sm"
                         value={newItemPrice}
                         onChange={(e) => setNewItemPrice(e.target.value)}
@@ -1064,7 +1113,7 @@ export const AdminDashboard: React.FC = () => {
                         {item.description}
                       </p>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong style={{ color: 'var(--secondary)', fontSize: '15px' }}>${item.price.toFixed(2)}</strong>
+                        <strong style={{ color: 'var(--secondary)', fontSize: '15px' }}>{item.price.toLocaleString()} RWF</strong>
                         <button 
                           onClick={() => handleRemoveMenuItem(item.id)}
                           className="btn btn-secondary"
@@ -1081,13 +1130,15 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-
+        {/* Tab 5: Customer Directory */}
         {activeTab === 'users' && (
-          <div className="menu-management-section animate-fade-in mt-4">
+          <div className="menu-management-section animate-fade-in">
+            <h3 className="section-title text-gradient mb-4">Customer Directory</h3>
+            
             <div className="card" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                 <ShieldCheck className="color-orange" size={22} />
-                <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Registered User Accounts</h4>
+                <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Registered Customer Profiles</h4>
               </div>
 
               <div className="staff-list" style={{ maxHeight: 'none' }}>
@@ -1136,7 +1187,144 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+
+        {/* Tab 6: Access Controls & System Settings */}
+        {activeTab === 'access' && (
+          <div className="access-controls-section animate-fade-in">
+            <h3 className="section-title text-gradient mb-4">Access Controls & Security Overrides</h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', alignItems: 'start' }}>
+              
+              {/* Overrides Card */}
+              <div className="card animate-fade-in" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                  <Settings className="color-orange" size={22} />
+                  <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>System Control Switches</h4>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)', padding: '15px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                    <div>
+                      <strong style={{ display: 'block', fontSize: '14px' }}>System Maintenance Lockout</strong>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Prevent customers from placing new orders during updates.</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setSystemLockout(!systemLockout);
+                        alert(`System lockout ${!systemLockout ? 'ENABLED' : 'DISABLED'}`);
+                      }}
+                      className={`btn ${systemLockout ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ padding: '6px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                    >
+                      {systemLockout ? '🔐 LOCKED' : '🔓 ACTIVE'}
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)', padding: '15px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                    <div>
+                      <strong style={{ display: 'block', fontSize: '14px' }}>Auto-Assign Dispatch Algorithms</strong>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Automatically bind idle chefs & couriers to incoming orders.</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setAutoAssignment(!autoAssignment);
+                        alert(`Auto-dispatch algorithm ${!autoAssignment ? 'ENABLED' : 'DISABLED'}`);
+                      }}
+                      className={`btn ${autoAssignment ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ padding: '6px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                    >
+                      {autoAssignment ? '🟢 AUTOMATIC' : '🔴 MANUAL'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Role Jurisdiction Guide */}
+                <div style={{ marginTop: '25px', padding: '15px', background: 'rgba(255, 69, 0, 0.02)', border: '1px dashed rgba(255, 69, 0, 0.2)', borderRadius: 'var(--radius-sm)' }}>
+                  <h5 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--secondary)', fontWeight: 700 }}>🛡️ Access Level Jurisdictions</h5>
+                  <ul style={{ paddingLeft: '20px', fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <li><strong>Admin</strong>: Complete jurisdiction. Oversees menus, categories, user profiles, chefs, riders, orders, and system configurations.</li>
+                    <li><strong>Chef</strong>: View kitchen prep queues, start and complete order preparations. Restricted from rider, customer, or inventory panels.</li>
+                    <li><strong>Rider</strong>: Access delivery queue, accept transit dispatches, track destination coordinate address pins, and complete deliveries.</li>
+                    <li><strong>Customer</strong>: View catalog, build carts, configure product custom ingredients, pin delivery addresses, and track real-time dispatches.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Add Administrators Card */}
+              <div className="card" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                  <Lock className="color-orange" size={22} />
+                  <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Delegate Admin Authority</h4>
+                </div>
+
+                <form onSubmit={handleAddAdmin} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '25px' }}>
+                  <div>
+                    <label className="text-xs text-muted mb-1 block">Full Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Master Administrator"
+                      className="form-input text-sm"
+                      value={newAdminName}
+                      onChange={(e) => setNewAdminName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted mb-1 block">Email Address</label>
+                    <input 
+                      type="email" 
+                      placeholder="e.g. admin@burgerhub.com"
+                      className="form-input text-sm"
+                      value={newAdminEmail}
+                      onChange={(e) => setNewAdminEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted mb-1 block">Login Password</label>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••"
+                      className="form-input text-sm"
+                      value={newAdminPassword}
+                      onChange={(e) => setNewAdminPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary w-full" style={{ marginTop: '5px' }}>
+                    <Plus size={16} /> Grant Admin Access
+                  </button>
+                </form>
+
+                <h5 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Active Administrators ({admins.length})</h5>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                  {admins.map(adm => (
+                    <div 
+                      key={adm.email} 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        background: 'rgba(255, 255, 255, 0.02)', 
+                        padding: '10px 12px', 
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)'
+                      }}
+                    >
+                      <div>
+                        <strong style={{ display: 'block', fontSize: '13px' }}>{adm.name}</strong>
+                        <span className="text-xs text-muted">{adm.email}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+      </main>
 
       {/* Order Details Modal (View orders with images) */}
       {selectedOrder && (
