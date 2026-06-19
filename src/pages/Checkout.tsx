@@ -56,6 +56,10 @@ export const Checkout: React.FC = () => {
     return localStorage.getItem('burgerhub_momo_apikey') || 'f8617b7ad1494d1e873161ce555f8966';
   });
 
+  // User Profile pre-filling state
+  const [activeUser, setActiveUser] = useState<any>(null);
+  const [saveToProfile, setSaveToProfile] = useState(false);
+
   useEffect(() => {
     localStorage.setItem('burgerhub_momo_uuid', momoUuid);
   }, [momoUuid]);
@@ -63,6 +67,43 @@ export const Checkout: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('burgerhub_momo_apikey', momoApiKey);
   }, [momoApiKey]);
+
+  // Load customer session details
+  useEffect(() => {
+    const session = localStorage.getItem('burgerhub_active_user');
+    if (session) {
+      const userObj = JSON.parse(session);
+      setActiveUser(userObj);
+      setName(userObj.name || '');
+      setEmail(userObj.email || '');
+      setPhone(userObj.phone || '');
+      setAddress(userObj.address || '');
+      setCity(userObj.city || '');
+      setZipCode(userObj.zipCode || '');
+      
+      // Auto-prefill credit card name & momo name
+      setCardName(userObj.name ? userObj.name.toUpperCase() : '');
+      setMomoName(userObj.name ? userObj.name.toUpperCase() : '');
+      
+      // Clean phone for momo phone
+      const rawPhone = userObj.phone ? userObj.phone.replace(/\D/g, '') : '';
+      setMomoPhone(rawPhone.slice(-9));
+    }
+  }, []);
+
+  const updateUserProfile = (profileData: { name: string, email: string, phone: string, address: string, city: string, zipCode: string }) => {
+    const session = localStorage.getItem('burgerhub_active_user');
+    if (!session) return;
+    const userObj = JSON.parse(session);
+    
+    const updatedUser = { ...userObj, ...profileData };
+    localStorage.setItem('burgerhub_active_user', JSON.stringify(updatedUser));
+    setActiveUser(updatedUser);
+
+    const usersList = JSON.parse(localStorage.getItem('burgerhub_users') || '[]');
+    const updatedList = usersList.map((u: any) => u.id === userObj.id ? { ...u, ...profileData } : u);
+    localStorage.setItem('burgerhub_users', JSON.stringify(updatedList));
+  };
 
   // Helper: Format amount with selected currency symbol
   const formatAmount = (usdAmount: number) => {
@@ -276,6 +317,10 @@ export const Checkout: React.FC = () => {
         currency
       };
       
+      if (saveToProfile && activeUser) {
+        updateUserProfile({ name, email, phone, address, city, zipCode });
+      }
+
       placeOrder(details);
       navigate('/tracking');
     }
@@ -333,6 +378,10 @@ export const Checkout: React.FC = () => {
           cardNumberMuted: paymentMethod === 'stripe' ? `•••• •••• •••• ${cardNumber.slice(-4)}` : undefined,
           currency
         };
+
+        if (saveToProfile && activeUser) {
+          updateUserProfile({ name, email, phone, address, city, zipCode });
+        }
 
         placeOrder(details);
         setIsProcessing(false);
@@ -412,7 +461,14 @@ export const Checkout: React.FC = () => {
 
             {/* Contact Information */}
             <div className="checkout-section card">
-              <h3>Contact Information</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0 }}>Contact Information</h3>
+                {activeUser && (
+                  <span className="user-badge" style={{ fontSize: '11px', background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-green)', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                    Profile Pre-filled
+                  </span>
+                )}
+              </div>
               <div className="form-group-row">
                 <div className="form-group">
                   <label className="form-label">Full Name</label>
@@ -448,6 +504,21 @@ export const Checkout: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
+
+              {activeUser && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '12px' }}>
+                  <input 
+                    type="checkbox" 
+                    id="saveProfileCheckbox"
+                    checked={saveToProfile}
+                    onChange={(e) => setSaveToProfile(e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="saveProfileCheckbox" style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    Save updated checkout details back to my profile
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Address Details & Map (Conditional) */}

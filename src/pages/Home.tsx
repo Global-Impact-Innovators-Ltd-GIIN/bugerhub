@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ShieldCheck, Truck, Clock, ArrowRight } from 'lucide-react';
 import { CustomizerModal } from '../components/CustomizerModal';
@@ -9,7 +9,7 @@ interface MenuItem {
   name: string;
   description: string;
   price: number;
-  category: 'burgers' | 'sides' | 'drinks' | 'desserts' | 'meals';
+  category: string;
   image: string;
 }
 
@@ -17,33 +17,44 @@ export const Home: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
 
-  // Featured items definitions matching the screenshot
-  const featuredFavorites: MenuItem[] = [
-    {
-      id: 'triple-threat',
-      name: 'Triple Threat Burger',
-      description: 'Three juicy patties, triple cheese, bacon, and our special sauce',
-      price: 18.99,
-      category: 'burgers',
-      image: '/images/triple_threat_burger.png'
-    },
-    {
-      id: 'animal-fries',
-      name: 'Loaded Animal Fries',
-      description: 'Crispy fries topped with cheese, grilled onions, thousand island',
-      price: 9.99,
-      category: 'sides',
-      image: '/images/loaded_animal_fries.png'
-    },
-    {
-      id: 'spicy-chicken',
-      name: 'Spicy Chicken Deluxe',
-      description: 'Spicy fried chicken, coleslaw, pickles, chipotle mayo',
-      price: 14.99,
-      category: 'burgers',
-      image: '/images/spicy_chicken_deluxe.png'
+  const [featuredFavorites, setFeaturedFavorites] = useState<MenuItem[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('burgerhub_menu_items');
+    if (saved) {
+      const allItems = JSON.parse(saved);
+      // Grab up to 3 items to show on the homepage featured favorites
+      setFeaturedFavorites(allItems.slice(0, 3));
+    } else {
+      const defaultFavorites: MenuItem[] = [
+        {
+          id: 'triple-threat',
+          name: 'Triple Threat Burger',
+          description: 'Three juicy patties, triple cheese, bacon, and our special sauce',
+          price: 18.99,
+          category: 'burgers',
+          image: '/images/triple_threat_burger.png'
+        },
+        {
+          id: 'animal-fries',
+          name: 'Loaded Animal Fries',
+          description: 'Crispy fries topped with cheese, grilled onions, thousand island',
+          price: 9.99,
+          category: 'sides',
+          image: '/images/loaded_animal_fries.png'
+        },
+        {
+          id: 'spicy-chicken',
+          name: 'Spicy Chicken Deluxe',
+          description: 'Spicy fried chicken, coleslaw, pickles, chipotle mayo',
+          price: 14.99,
+          category: 'burgers',
+          image: '/images/spicy_chicken_deluxe.png'
+        }
+      ];
+      setFeaturedFavorites(defaultFavorites);
     }
-  ];
+  }, []);
 
   const handleCustomizeClick = (item: MenuItem) => {
     setSelectedItem(item);

@@ -9,7 +9,7 @@ interface MenuItem {
   name: string;
   description: string;
   price: number;
-  category: 'burgers' | 'sides' | 'drinks' | 'desserts' | 'meals';
+  category: string;
   image: string;
 }
 
@@ -27,89 +27,118 @@ export const Menu: React.FC = () => {
     const categoryParam = searchParams.get('category') || 'all';
     setActiveCategory(categoryParam);
   }, [searchParams]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<{ id: string; label: string }[]>([]);
 
-  const menuItems: MenuItem[] = [
-    {
-      id: 'triple-threat',
-      name: 'Triple Threat Burger',
-      description: 'Three juicy beef patties, triple cheddar cheese, smoked bacon, special sauce, brioche bun.',
-      price: 18.99,
-      category: 'burgers',
-      image: '/images/triple_threat_burger.png'
-    },
-    {
-      id: 'spicy-chicken',
-      name: 'Spicy Chicken Deluxe',
-      description: 'Spicy crispy fried chicken, creamy coleslaw, dill pickle slices, chipotle mayo, brioche bun.',
-      price: 14.99,
-      category: 'burgers',
-      image: '/images/spicy_chicken_deluxe.png'
-    },
-    {
-      id: 'classic-cheeseburger',
-      name: 'Classic Cheeseburger',
-      description: 'Flame-grilled beef patty, melted cheddar, crisp lettuce, tomato, pickles, and our signature sauce.',
-      price: 12.99,
-      category: 'burgers',
-      image: '/images/hero_burger.png'
-    },
-    {
-      id: 'bacon-avocado',
-      name: 'Bacon Avocado Burger',
-      description: 'Flame-grilled beef patty, smoked bacon, fresh avocado slices, Swiss cheese, and garlic aioli.',
-      price: 15.99,
-      category: 'burgers',
-      image: '/images/triple_threat_burger.png'
-    },
-    {
-      id: 'animal-fries',
-      name: 'Loaded Animal Fries',
-      description: 'Crispy golden french fries topped with melted cheese, caramelized grilled onions, and thousand island sauce.',
-      price: 9.99,
-      category: 'sides',
-      image: '/images/loaded_animal_fries.png'
-    },
-    {
-      id: 'sweet-potato-fries',
-      name: 'Sweet Potato Fries',
-      description: 'Crispy sweet potato fries lightly salted, served with a side of maple dipping sauce.',
-      price: 6.99,
-      category: 'sides',
-      image: '/images/loaded_animal_fries.png'
-    },
-    {
-      id: 'double-stack-meal',
-      name: 'Double Stack Combo Deal',
-      description: 'Double Cheeseburger, Loaded Animal Fries, and a large draft soda. The ultimate meal.',
-      price: 24.99,
-      category: 'meals',
-      image: '/images/hero_burger.png'
-    },
-    {
-      id: 'draft-soda',
-      name: 'Draft Soda',
-      description: 'Refreshing carbonated beverages poured fresh over ice. Choice of Coca Cola, Sprite, or Fanta.',
-      price: 3.49,
-      category: 'drinks',
-      image: '/images/loaded_animal_fries.png'
-    },
-    {
-      id: 'milkshake',
-      name: 'Classic Milkshake',
-      description: 'Thick, creamy milkshake made with real vanilla ice cream. Whipped cream and cherry on top.',
-      price: 5.99,
-      category: 'desserts',
-      image: '/images/spicy_chicken_deluxe.png'
-    },
-    {
-      id: 'chocolate-brownie',
-      name: 'Warm Chocolate Brownie',
-      description: 'Warm fudge chocolate brownie topped with chocolate drizzle, served with vanilla ice cream.',
-      price: 7.99,
-      category: 'desserts',
-      image: '/images/triple_threat_burger.png'
+  useEffect(() => {
+    // Seed default categories if none exist
+    const savedCategories = localStorage.getItem('burgerhub_menu_categories');
+    let cats = [];
+    if (savedCategories) {
+      cats = JSON.parse(savedCategories);
+    } else {
+      cats = [
+        { id: 'all', label: 'All Items' },
+        { id: 'burgers', label: 'Signature Burgers' },
+        { id: 'meals', label: 'Family Meals' },
+        { id: 'sides', label: 'Sides & Drinks' },
+        { id: 'desserts', label: 'Desserts' }
+      ];
+      localStorage.setItem('burgerhub_menu_categories', JSON.stringify(cats));
     }
-  ];
+    setCategories(cats);
+
+    // Seed default items if none exist
+    const savedItems = localStorage.getItem('burgerhub_menu_items');
+    if (savedItems) {
+      setMenuItems(JSON.parse(savedItems));
+    } else {
+      const defaultItems: MenuItem[] = [
+        {
+          id: 'triple-threat',
+          name: 'Triple Threat Burger',
+          description: 'Three juicy beef patties, triple cheddar cheese, smoked bacon, special sauce, brioche bun.',
+          price: 18.99,
+          category: 'burgers',
+          image: '/images/triple_threat_burger.png'
+        },
+        {
+          id: 'spicy-chicken',
+          name: 'Spicy Chicken Deluxe',
+          description: 'Spicy crispy fried chicken, creamy coleslaw, dill pickle slices, chipotle mayo, brioche bun.',
+          price: 14.99,
+          category: 'burgers',
+          image: '/images/spicy_chicken_deluxe.png'
+        },
+        {
+          id: 'classic-cheeseburger',
+          name: 'Classic Cheeseburger',
+          description: 'Flame-grilled beef patty, melted cheddar, crisp lettuce, tomato, pickles, and our signature sauce.',
+          price: 12.99,
+          category: 'burgers',
+          image: '/images/hero_burger.png'
+        },
+        {
+          id: 'bacon-avocado',
+          name: 'Bacon Avocado Burger',
+          description: 'Flame-grilled beef patty, smoked bacon, fresh avocado slices, Swiss cheese, and garlic aioli.',
+          price: 15.99,
+          category: 'burgers',
+          image: '/images/triple_threat_burger.png'
+        },
+        {
+          id: 'animal-fries',
+          name: 'Loaded Animal Fries',
+          description: 'Crispy golden french fries topped with melted cheese, caramelized grilled onions, and thousand island sauce.',
+          price: 9.99,
+          category: 'sides',
+          image: '/images/loaded_animal_fries.png'
+        },
+        {
+          id: 'sweet-potato-fries',
+          name: 'Sweet Potato Fries',
+          description: 'Crispy sweet potato fries lightly salted, served with a side of maple dipping sauce.',
+          price: 6.99,
+          category: 'sides',
+          image: '/images/loaded_animal_fries.png'
+        },
+        {
+          id: 'double-stack-meal',
+          name: 'Double Stack Combo Deal',
+          description: 'Double Cheeseburger, Loaded Animal Fries, and a large draft soda. The ultimate meal.',
+          price: 24.99,
+          category: 'meals',
+          image: '/images/hero_burger.png'
+        },
+        {
+          id: 'draft-soda',
+          name: 'Draft Soda',
+          description: 'Refreshing carbonated beverages poured fresh over ice. Choice of Coca Cola, Sprite, or Fanta.',
+          price: 3.49,
+          category: 'drinks',
+          image: '/images/loaded_animal_fries.png'
+        },
+        {
+          id: 'milkshake',
+          name: 'Classic Milkshake',
+          description: 'Thick, creamy milkshake made with real vanilla ice cream. Whipped cream and cherry on top.',
+          price: 5.99,
+          category: 'desserts',
+          image: '/images/spicy_chicken_deluxe.png'
+        },
+        {
+          id: 'chocolate-brownie',
+          name: 'Warm Chocolate Brownie',
+          description: 'Warm fudge chocolate brownie topped with chocolate drizzle, served with vanilla ice cream.',
+          price: 7.99,
+          category: 'desserts',
+          image: '/images/triple_threat_burger.png'
+        }
+      ];
+      localStorage.setItem('burgerhub_menu_items', JSON.stringify(defaultItems));
+      setMenuItems(defaultItems);
+    }
+  }, []);
 
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
@@ -148,13 +177,7 @@ export const Menu: React.FC = () => {
       <section className="menu-controls container">
         {/* Category Tabs */}
         <div className="category-tabs">
-          {[
-            { id: 'all', label: 'All Items' },
-            { id: 'burgers', label: 'Signature Burgers' },
-            { id: 'meals', label: 'Family Meals' },
-            { id: 'sides', label: 'Sides & Drinks' },
-            { id: 'desserts', label: 'Desserts' }
-          ].map(tab => (
+          {categories.map(tab => (
             <button
               key={tab.id}
               className={`category-tab-btn ${activeCategory === tab.id ? 'active' : ''}`}

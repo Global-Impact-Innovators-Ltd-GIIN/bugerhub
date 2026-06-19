@@ -12,6 +12,13 @@ import { OrderTracking } from './pages/OrderTracking';
 import { AdminLogin } from './pages/AdminLogin';
 import { AdminSignup } from './pages/AdminSignup';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { ChefLogin } from './pages/ChefLogin';
+import { ChefDashboard } from './pages/ChefDashboard';
+import { RiderLogin } from './pages/RiderLogin';
+import { RiderDashboard } from './pages/RiderDashboard';
+import { UserLogin } from './pages/UserLogin';
+import { UserSignup } from './pages/UserSignup';
+import { UserProfile } from './pages/UserProfile';
 
 function App() {
   return (
@@ -28,9 +35,16 @@ function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/tracking" element={<OrderTracking />} />
+              <Route path="/login" element={<UserLogin />} />
+              <Route path="/signup" element={<UserSignup />} />
+              <Route path="/profile" element={<UserProfile />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/signup" element={<AdminSignup />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/chef/login" element={<ChefLogin />} />
+              <Route path="/chef/dashboard" element={<ChefDashboard />} />
+              <Route path="/rider/login" element={<RiderLogin />} />
+              <Route path="/rider/dashboard" element={<RiderDashboard />} />
             </Routes>
           </main>
           <Footer />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Menu, X, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -10,6 +10,23 @@ export const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isChef, setIsChef] = useState(false);
+  const [isRider, setIsRider] = useState(false);
+
+  useEffect(() => {
+    const userSession = localStorage.getItem('burgerhub_active_user');
+    const adminSession = localStorage.getItem('burgerhub_active_admin');
+    const chefSession = localStorage.getItem('burgerhub_active_chef');
+    const riderSession = localStorage.getItem('burgerhub_active_rider');
+
+    setCurrentUser(userSession ? JSON.parse(userSession) : null);
+    setIsAdmin(!!adminSession);
+    setIsChef(!!chefSession);
+    setIsRider(!!riderSession);
+  }, [location.pathname]);
 
   const toggleCart = () => setIsCartOpen(!isCartOpen);
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -40,11 +57,24 @@ export const Header: React.FC = () => {
             <Link to="/deals" className={`nav-link ${isActive('/deals')}`}>Deals</Link>
             <Link to="/about" className={`nav-link ${isActive('/about')}`}>About</Link>
             <Link to="/contact" className={`nav-link ${isActive('/contact')}`}>Contact</Link>
-            <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard')}`}>Admin Portal</Link>
+            {isAdmin && <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard')}`}>Admin</Link>}
+            {isChef && <Link to="/chef/dashboard" className={`nav-link ${isActive('/chef/dashboard')}`}>Chef</Link>}
+            {isRider && <Link to="/rider/dashboard" className={`nav-link ${isActive('/rider/dashboard')}`}>Rider</Link>}
           </nav>
-
+          
           {/* Actions */}
           <div className="header-actions">
+            {currentUser ? (
+              <Link to="/profile" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', background: 'var(--accent-green)', borderRadius: '50%', display: 'inline-block' }}></span>
+                <span>{currentUser.name.split(' ')[0]}</span>
+              </Link>
+            ) : (
+              <Link to="/login" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '13px' }}>
+                Sign In
+              </Link>
+            )}
+
             <button className="cart-trigger-btn" onClick={toggleCart} aria-label="Open Cart">
               <ShoppingCart size={22} />
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
@@ -56,7 +86,7 @@ export const Header: React.FC = () => {
             </button>
           </div>
         </div>
-
+ 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <nav className="nav-mobile">
@@ -65,7 +95,14 @@ export const Header: React.FC = () => {
             <Link to="/deals" className={`nav-link ${isActive('/deals')}`} onClick={toggleMobileMenu}>Deals</Link>
             <Link to="/about" className={`nav-link ${isActive('/about')}`} onClick={toggleMobileMenu}>About</Link>
             <Link to="/contact" className={`nav-link ${isActive('/contact')}`} onClick={toggleMobileMenu}>Contact</Link>
-            <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard')}`} onClick={toggleMobileMenu}>Admin Portal</Link>
+            {isAdmin && <Link to="/admin/dashboard" className={`nav-link ${isActive('/admin/dashboard')}`} onClick={toggleMobileMenu}>Admin Portal</Link>}
+            {isChef && <Link to="/chef/dashboard" className={`nav-link ${isActive('/chef/dashboard')}`} onClick={toggleMobileMenu}>Chef Portal</Link>}
+            {isRider && <Link to="/rider/dashboard" className={`nav-link ${isActive('/rider/dashboard')}`} onClick={toggleMobileMenu}>Rider Portal</Link>}
+            {currentUser ? (
+              <Link to="/profile" className={`nav-link ${isActive('/profile')}`} onClick={toggleMobileMenu}>My Profile ({currentUser.name})</Link>
+            ) : (
+              <Link to="/login" className={`nav-link ${isActive('/login')}`} onClick={toggleMobileMenu}>Sign In / Sign Up</Link>
+            )}
             <Link to="/menu" className="btn btn-primary mobile-order-btn" onClick={toggleMobileMenu}>ORDER NOW</Link>
           </nav>
         )}
