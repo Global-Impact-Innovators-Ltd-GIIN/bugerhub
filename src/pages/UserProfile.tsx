@@ -4,6 +4,7 @@ import { User, LogOut, Check, MapPin, ShieldCheck, ShoppingBag } from 'lucide-re
 import { RwandaMap } from '../components/RwandaMap';
 import { useCart } from '../context/CartContext';
 import { fetchUsers, saveUser } from '../utils/supabaseDb';
+import { formatRWF } from '../utils/pricing';
 import '../styles/pages/AdminDashboard.css';
 import '../styles/pages/UserAccount.css';
 
@@ -26,7 +27,7 @@ export const UserProfile: React.FC = () => {
 
   useEffect(() => {
     const loadProfileData = async () => {
-      const session = localStorage.getItem('burgerhub_active_user');
+      const session = localStorage.getItem('burgerhub_active_user') || sessionStorage.getItem('burgerhub_active_user');
       if (!session) {
         navigate('/login');
         return;
@@ -98,7 +99,11 @@ export const UserProfile: React.FC = () => {
       city: city,
       zipCode: zipCode
     };
-    localStorage.setItem('burgerhub_active_user', JSON.stringify(updatedSession));
+    if (localStorage.getItem('burgerhub_active_user')) {
+      localStorage.setItem('burgerhub_active_user', JSON.stringify(updatedSession));
+    } else {
+      sessionStorage.setItem('burgerhub_active_user', JSON.stringify(updatedSession));
+    }
     setUser(updatedSession);
     
     setSuccessMsg('Profile and coordinates updated successfully!');
@@ -107,6 +112,7 @@ export const UserProfile: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('burgerhub_active_user');
+    sessionStorage.removeItem('burgerhub_active_user');
     navigate('/');
     // Refresh page to clean state
     window.location.reload();
@@ -281,9 +287,9 @@ export const UserProfile: React.FC = () => {
                         <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <span>{item.quantity}x {item.name}</span>
                           <span className="text-muted">
-                            {order.details.currency === 'RWF' 
-                              ? `${Math.round(item.totalPrice * item.quantity * 1300).toLocaleString()} RWF`
-                              : `$${(item.totalPrice * item.quantity).toFixed(2)}`
+                            {order.details.currency === 'USD' 
+                              ? `$${(item.totalPrice * item.quantity).toFixed(2)}`
+                              : formatRWF(item.totalPrice * item.quantity)
                             }
                           </span>
                         </div>
@@ -297,9 +303,9 @@ export const UserProfile: React.FC = () => {
                       </span>
                       <span className="profile-order-total">
                         Total:{' '}
-                        {order.details.currency === 'RWF'
-                          ? `${Math.round(order.total * 1300).toLocaleString()} RWF`
-                          : `$${order.total.toFixed(2)}`
+                        {order.details.currency === 'USD'
+                          ? `$${order.total.toFixed(2)}`
+                          : formatRWF(order.total)
                         }
                       </span>
                     </div>

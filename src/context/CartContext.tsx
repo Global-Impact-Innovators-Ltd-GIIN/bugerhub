@@ -100,8 +100,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loadDbOrders = async () => {
       const dbOrders = await fetchOrders();
       setOrders(dbOrders);
+      
+      // Update activeOrder if its status has changed in the database
+      setActiveOrder(prevActive => {
+        if (!prevActive) return null;
+        const matching = dbOrders.find(o => o.id === prevActive.id);
+        if (matching && matching.status !== prevActive.status) {
+          return { ...prevActive, status: matching.status };
+        }
+        return prevActive;
+      });
     };
     loadDbOrders();
+    const interval = setInterval(loadDbOrders, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

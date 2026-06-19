@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Lock, ShieldAlert, KeyRound, ShieldCheck } from 'lucide-react';
+import { User, Mail, Lock, ShieldAlert, KeyRound, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { fetchAdmins, saveAdmin } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 
@@ -9,6 +9,8 @@ export const AdminSignup: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const [keepMeLoggedIn, setKeepMeLoggedIn] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -40,7 +42,16 @@ export const AdminSignup: React.FC = () => {
     };
 
     await saveAdmin(newAdmin);
-    sessionStorage.setItem('burgerhub_active_admin', JSON.stringify({ email: newAdmin.email, name: newAdmin.name }));
+    
+    const adminSessionData = JSON.stringify({ email: newAdmin.email, name: newAdmin.name });
+
+    if (keepMeLoggedIn) {
+      localStorage.setItem('burgerhub_active_admin', adminSessionData);
+      sessionStorage.removeItem('burgerhub_active_admin');
+    } else {
+      sessionStorage.setItem('burgerhub_active_admin', adminSessionData);
+      localStorage.removeItem('burgerhub_active_admin');
+    }
     
     navigate('/admin/dashboard');
   };
@@ -98,14 +109,36 @@ export const AdminSignup: React.FC = () => {
               <label className="form-label">Password</label>
               <div className="card-input-wrapper">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   placeholder="••••••••"
                   className="form-input auth-input"
+                  style={{ paddingRight: '40px' }}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 <span className="input-icon"><Lock size={16} /></span>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0
+                  }}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
@@ -122,6 +155,20 @@ export const AdminSignup: React.FC = () => {
                 />
                 <span className="input-icon"><KeyRound size={16} /></span>
               </div>
+            </div>
+
+            {/* Keep me logged in checkbox */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px' }}>
+              <input 
+                type="checkbox" 
+                id="keepMeLoggedIn"
+                checked={keepMeLoggedIn}
+                onChange={(e) => setKeepMeLoggedIn(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+              />
+              <label htmlFor="keepMeLoggedIn" style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
+                Keep me logged in
+              </label>
             </div>
 
             <button type="submit" className="btn btn-primary auth-submit-btn mt-4">

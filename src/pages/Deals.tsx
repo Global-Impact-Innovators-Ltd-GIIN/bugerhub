@@ -21,9 +21,9 @@ export const Deals: React.FC = () => {
     {
       id: 'double-stack',
       title: 'Double Stack Combo Deal',
-      description: 'Get a Double Cheeseburger, Loaded Animal Fries, and a large draft soda. Save over $5.00!',
+      description: 'Get a Double Cheeseburger, Loaded Animal Fries, and a large draft soda. Save over 6,500 RWF!',
       badge: 'POPULAR COMBO',
-      discount: '$24.99 Only',
+      discount: '32,487 RWF Only',
       expiry: 'Expires 07/15/2026',
       image: '/images/hero_burger.png'
     },
@@ -39,7 +39,7 @@ export const Deals: React.FC = () => {
     },
     {
       id: 'coupon-freefries',
-      title: 'Free Loaded Fries with Order over $30',
+      title: 'Free Loaded Fries with Order over 39,000 RWF',
       code: 'FREEANIMAL',
       description: 'Add a portion of Loaded Animal Fries to your cart and apply code to get it completely free.',
       badge: 'SPECIAL DEAL',

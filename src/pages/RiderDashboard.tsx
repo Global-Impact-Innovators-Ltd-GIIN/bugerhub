@@ -16,7 +16,7 @@ export const RiderDashboard: React.FC = () => {
   const [mapProgress, setMapProgress] = useState(0);
 
   useEffect(() => {
-    const session = sessionStorage.getItem('burgerhub_active_rider');
+    const session = sessionStorage.getItem('burgerhub_active_rider') || localStorage.getItem('burgerhub_active_rider');
     if (!session) {
       navigate('/rider/login');
       return;
@@ -59,6 +59,7 @@ export const RiderDashboard: React.FC = () => {
 
   const handleLogout = () => {
     sessionStorage.removeItem('burgerhub_active_rider');
+    localStorage.removeItem('burgerhub_active_rider');
     navigate('/rider/login');
   };
 
@@ -126,9 +127,9 @@ export const RiderDashboard: React.FC = () => {
                   <div style={{ background: 'rgba(255, 69, 0, 0.1)', padding: '10px 16px', borderRadius: 'var(--radius-md)' }}>
                     <span className="text-xs text-muted block text-right">Payment</span>
                     <strong style={{ color: 'var(--secondary)', display: 'block', textAlign: 'right' }}>
-                      {myCurrentOrder.details.currency === 'RWF' 
-                        ? `${Math.round(myCurrentOrder.total * 1300).toLocaleString()} RWF`
-                        : `$${myCurrentOrder.total.toFixed(2)}`
+                      {myCurrentOrder.details.currency === 'USD' 
+                        ? `$${myCurrentOrder.total.toFixed(2)}`
+                        : `${Math.round(myCurrentOrder.total * 1300).toLocaleString()} RWF`
                       } ({myCurrentOrder.details.paymentMethod.toUpperCase()})
                     </strong>
                   </div>

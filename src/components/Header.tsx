@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Menu, X, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { formatRWF } from '../utils/pricing';
 import '../styles/components/Header.css';
 
 export const Header: React.FC = () => {
@@ -17,10 +18,10 @@ export const Header: React.FC = () => {
   const [isRider, setIsRider] = useState(false);
 
   useEffect(() => {
-    const userSession = localStorage.getItem('burgerhub_active_user');
-    const adminSession = sessionStorage.getItem('burgerhub_active_admin');
-    const chefSession = sessionStorage.getItem('burgerhub_active_chef');
-    const riderSession = sessionStorage.getItem('burgerhub_active_rider');
+    const userSession = localStorage.getItem('burgerhub_active_user') || sessionStorage.getItem('burgerhub_active_user');
+    const adminSession = sessionStorage.getItem('burgerhub_active_admin') || localStorage.getItem('burgerhub_active_admin');
+    const chefSession = sessionStorage.getItem('burgerhub_active_chef') || localStorage.getItem('burgerhub_active_chef');
+    const riderSession = sessionStorage.getItem('burgerhub_active_rider') || localStorage.getItem('burgerhub_active_rider');
 
     setCurrentUser(userSession ? JSON.parse(userSession) : null);
     setIsAdmin(!!adminSession);
@@ -132,7 +133,7 @@ export const Header: React.FC = () => {
                   <img src={item.image} alt={item.name} className="cart-item-image" />
                   <div className="cart-item-details">
                     <h4 className="cart-item-title">{item.name}</h4>
-                    <p className="cart-item-price">${(item.totalPrice * item.quantity).toFixed(2)}</p>
+                    <p className="cart-item-price">{formatRWF(item.totalPrice * item.quantity)}</p>
                     
                     {/* Selected Customizations */}
                     {(item.customizations.bun || item.customizations.doneness || item.customizations.extras.length > 0 || item.customizations.sauces.length > 0) && (
@@ -174,7 +175,7 @@ export const Header: React.FC = () => {
           <div className="cart-drawer-footer">
             <div className="cart-summary-row">
               <span>Subtotal</span>
-              <span className="price-tag">${cartSubtotal.toFixed(2)}</span>
+              <span className="price-tag">{formatRWF(cartSubtotal)}</span>
             </div>
             <p className="footer-disclaimer">Taxes and delivery calculated at checkout</p>
             <button className="btn btn-primary checkout-btn" onClick={handleCheckoutClick}>

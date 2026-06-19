@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ShieldCheck, Truck, Clock, ArrowRight } from 'lucide-react';
 import { CustomizerModal } from '../components/CustomizerModal';
+import { formatRWF } from '../utils/pricing';
 import '../styles/pages/Home.css';
 
 interface MenuItem {
@@ -104,7 +105,7 @@ export const Home: React.FC = () => {
                 <Truck size={18} className="prop-icon" />
                 <div>
                   <h5>Delivery</h5>
-                  <p>Free over $25</p>
+                  <p>Free over 32,500 RWF</p>
                 </div>
               </div>
               
@@ -180,7 +181,7 @@ export const Home: React.FC = () => {
                     <p className="card-desc">{item.description}</p>
                     
                     <div className="card-footer">
-                      <span className="card-price">${item.price.toFixed(2)}</span>
+                      <span className="card-price">{formatRWF(item.price)}</span>
                       <button 
                         onClick={() => handleCustomizeClick(item)} 
                         className="btn btn-secondary customize-btn"

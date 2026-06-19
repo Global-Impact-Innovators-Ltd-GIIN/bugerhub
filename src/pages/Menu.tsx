@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, Star, ArrowRight } from 'lucide-react';
 import { CustomizerModal } from '../components/CustomizerModal';
 import { fetchMenuCategories, fetchMenuItems } from '../utils/supabaseDb';
+import { formatRWF } from '../utils/pricing';
 import '../styles/pages/Menu.css';
 
 interface MenuItem {
@@ -134,7 +135,7 @@ export const Menu: React.FC = () => {
                     <p className="product-desc">{item.description}</p>
                     
                     <div className="product-footer">
-                      <span className="product-price">${item.price.toFixed(2)}</span>
+                      <span className="product-price">{formatRWF(item.price)}</span>
                       <button 
                         onClick={() => handleCustomizeClick(item)} 
                         className="btn btn-secondary customize-btn-menu"

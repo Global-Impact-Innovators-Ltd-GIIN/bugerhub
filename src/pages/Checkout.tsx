@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { CreditCard, Truck, Store, Lock, ShieldAlert, Phone } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { saveUser } from '../utils/supabaseDb';
@@ -15,7 +15,7 @@ export const Checkout: React.FC = () => {
   const EXCHANGE_RATE = 1300;
 
   // Currency State
-  const [currency, setCurrency] = useState<'USD' | 'RWF'>('USD');
+  const [currency, setCurrency] = useState<'USD' | 'RWF'>('RWF');
 
   // Form State
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
@@ -70,7 +70,7 @@ export const Checkout: React.FC = () => {
 
   // Load customer session details
   useEffect(() => {
-    const session = localStorage.getItem('burgerhub_active_user');
+    const session = localStorage.getItem('burgerhub_active_user') || sessionStorage.getItem('burgerhub_active_user');
     if (session) {
       const userObj = JSON.parse(session);
       setActiveUser(userObj);
@@ -92,7 +92,7 @@ export const Checkout: React.FC = () => {
   }, []);
 
   const updateUserProfile = (details: { name: string, email: string, phone: string, address: string, city: string, zipCode: string }) => {
-    const session = localStorage.getItem('burgerhub_active_user');
+    const session = localStorage.getItem('burgerhub_active_user') || sessionStorage.getItem('burgerhub_active_user');
     
     // Save updated details to user profile if checked
     if (saveToProfile && session) {
@@ -108,7 +108,7 @@ export const Checkout: React.FC = () => {
         password: activeUser.password || '' // preserve
       };
       
-      localStorage.setItem('burgerhub_active_user', JSON.stringify({
+      const sessionStr = JSON.stringify({
         id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
@@ -116,7 +116,13 @@ export const Checkout: React.FC = () => {
         address: updatedUser.address,
         city: updatedUser.city,
         zipCode: updatedUser.zipCode
-      }));
+      });
+
+      if (localStorage.getItem('burgerhub_active_user')) {
+        localStorage.setItem('burgerhub_active_user', sessionStr);
+      } else {
+        sessionStorage.setItem('burgerhub_active_user', sessionStr);
+      }
       
       saveUser(updatedUser);
     }
@@ -429,6 +435,17 @@ export const Checkout: React.FC = () => {
         <form onSubmit={handleSubmitOrder} className="checkout-layout">
           {/* Left Side: Form Details */}
           <div className="checkout-form">
+            {!activeUser && (
+              <div className="checkout-section card info-card animate-fade-in" style={{ display: 'flex', alignItems: 'center', gap: '12px', borderLeft: '4px solid var(--primary)', background: 'rgba(255, 69, 0, 0.05)', marginBottom: '20px' }}>
+                <span style={{ fontSize: '18px' }}>💡</span>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Checking out as Guest</h4>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    You can complete your order without signing in. Or, <Link to="/login?redirect=/checkout" className="orange-link font-semibold">Sign In Here</Link> to automatically load your saved delivery addresses.
+                  </p>
+                </div>
+              </div>
+            )}
             
             {/* Currency Switcher */}
             <div className="checkout-section card">

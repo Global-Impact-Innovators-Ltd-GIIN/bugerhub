@@ -10,7 +10,7 @@ export const OrderTracking: React.FC = () => {
   const [progressWidth, setProgressWidth] = useState(15);
   
   const EXCHANGE_RATE = 1300;
-  const currency = activeOrder?.details.currency || 'USD';
+  const currency = activeOrder?.details.currency || 'RWF';
 
   // Helper: Format amount with RWF/USD conversions
   const formatAmount = (usdAmount: number) => {

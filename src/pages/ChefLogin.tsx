@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, ShieldAlert, ChefHat } from 'lucide-react';
+import { Lock, Mail, ShieldAlert, ChefHat, Eye, EyeOff } from 'lucide-react';
 import { fetchChefs } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 import '../styles/pages/StaffPortals.css';
@@ -8,6 +8,8 @@ import '../styles/pages/StaffPortals.css';
 export const ChefLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [keepMeLoggedIn, setKeepMeLoggedIn] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -32,7 +34,16 @@ export const ChefLogin: React.FC = () => {
     const matchedChef = chefs.find((c: any) => c.email.toLowerCase() === email.toLowerCase().trim() && c.password === password);
 
     if (matchedChef) {
-      sessionStorage.setItem('burgerhub_active_chef', JSON.stringify(matchedChef));
+      const chefSessionData = JSON.stringify(matchedChef);
+
+      if (keepMeLoggedIn) {
+        localStorage.setItem('burgerhub_active_chef', chefSessionData);
+        sessionStorage.removeItem('burgerhub_active_chef');
+      } else {
+        sessionStorage.setItem('burgerhub_active_chef', chefSessionData);
+        localStorage.removeItem('burgerhub_active_chef');
+      }
+      
       navigate('/chef/dashboard');
     } else {
       setError('Invalid chef email or password. Please use pre-configured logins.');
@@ -77,15 +88,51 @@ export const ChefLogin: React.FC = () => {
               <label className="form-label">Password</label>
               <div className="card-input-wrapper">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   placeholder="••••••••"
                   className="form-input auth-input"
+                  style={{ paddingRight: '40px' }}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 <span className="input-icon"><Lock size={16} /></span>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0
+                  }}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
+            </div>
+
+            {/* Keep me logged in checkbox */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px' }}>
+              <input 
+                type="checkbox" 
+                id="keepMeLoggedIn"
+                checked={keepMeLoggedIn}
+                onChange={(e) => setKeepMeLoggedIn(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+              />
+              <label htmlFor="keepMeLoggedIn" style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
+                Keep me logged in
+              </label>
             </div>
 
             <button type="submit" className="btn btn-primary auth-submit-btn mt-4">

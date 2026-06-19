@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { formatRWF } from '../utils/pricing';
 import '../styles/components/CustomizerModal.css';
 
 interface MenuItem {
@@ -151,7 +152,7 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({ item, isOpen, 
             <div className="modal-item-details">
               <h3>{item.name}</h3>
               <p className="modal-item-desc">{item.description}</p>
-              <p className="modal-item-base-price">Base Price: <span>${item.price.toFixed(2)}</span></p>
+              <p className="modal-item-base-price">Base Price: <span>{formatRWF(item.price)}</span></p>
             </div>
           </div>
 
@@ -164,7 +165,7 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({ item, isOpen, 
               <div className="custom-section">
                 <h4>Choose Your Bun</h4>
                 <div className="options-grid">
-                  {['Brioche Bun', 'Gluten-Free Bun (+$1.00)', 'Lettuce Wrap'].map(bun => {
+                  {['Brioche Bun', 'Gluten-Free Bun (+1,300 RWF)', 'Lettuce Wrap'].map(bun => {
                     const isSelected = selectedBun === bun;
                     return (
                       <button 
@@ -214,7 +215,7 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({ item, isOpen, 
                       >
                         <div className="checkbox-box">{isSelected && <Check size={14} />}</div>
                         <span className="extra-info">
-                          {extra.name} <span className="extra-price">+${extra.price.toFixed(2)}</span>
+                          {extra.name} <span className="extra-price">+{formatRWF(extra.price)}</span>
                         </span>
                       </button>
                     );
@@ -249,7 +250,7 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({ item, isOpen, 
                 <div className="custom-section">
                   <h4>Choose Size</h4>
                   <div className="options-grid">
-                    {['Regular', 'Large (+$1.50)'].map(sz => {
+                    {['Regular', 'Large (+1,950 RWF)'].map(sz => {
                       const sizeName = sz.split(' ')[0];
                       const isSelected = size === sizeName;
                       return (
@@ -298,7 +299,7 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({ item, isOpen, 
           </div>
 
           <button className="btn btn-primary add-cart-btn" onClick={handleAddToCart}>
-            ADD TO CART • ${grandTotal.toFixed(2)}
+            ADD TO CART • {formatRWF(grandTotal)}
           </button>
         </div>
       </div>

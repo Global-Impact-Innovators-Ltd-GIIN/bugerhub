@@ -1,112 +1,246 @@
-import React, { useState, useRef } from 'react';
-import { Compass } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Compass, Search, MapPin } from 'lucide-react';
 import '../styles/components/RwandaMap.css';
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 interface RwandaMapProps {
   onLocationSelected: (address: string, district: string, coordinates: string) => void;
 }
 
 export const RwandaMap: React.FC<RwandaMapProps> = ({ onLocationSelected }) => {
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [pinPos, setPinPos] = useState<{ x: number; y: number } | null>(null);
-  const [coordinates, setCoordinates] = useState<string>('');
-  const [district, setDistrict] = useState<string>('');
-  const svgRef = useRef<SVGSVGElement | null>(null);
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAddress, setSelectedAddress] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedCoords, setSelectedCoords] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loadingLoc, setLoadingLoc] = useState(false);
 
-  // Provinces definitions and their representative mock coordinate centers
-  const provinces = [
-    {
-      id: 'kigali',
-      name: 'Kigali Province',
-      capital: 'Kigali City',
-      baseLat: -1.9441,
-      baseLng: 30.0619,
-      districts: ['Nyarugenge', 'Gasabo', 'Kicukiro'],
-      path: 'M200,80 L250,70 L270,100 L240,120 L190,110 Z' // Center
-    },
-    {
-      id: 'northern',
-      name: 'Northern Province',
-      capital: 'Musanze',
-      baseLat: -1.5008,
-      baseLng: 29.9701,
-      districts: ['Musanze', 'Burera', 'Gicumbi', 'Rulindo', 'Gakenke'],
-      path: 'M90,40 L190,20 L310,20 L300,60 L250,70 L200,80 L170,80 Z' // North
-    },
-    {
-      id: 'eastern',
-      name: 'Eastern Province',
-      capital: 'Rwamagana',
-      baseLat: -1.9802,
-      baseLng: 30.4352,
-      districts: ['Rwamagana', 'Nyagatare', 'Gatsibo', 'Kayonza', 'Kirehe', 'Ngoma', 'Bugesera'],
-      path: 'M310,20 L390,50 L380,130 L340,160 L270,140 L270,100 L300,60 Z' // East
-    },
-    {
-      id: 'western',
-      name: 'Western Province',
-      capital: 'Rubavu',
-      baseLat: -1.7214,
-      baseLng: 29.2312,
-      districts: ['Rubavu', 'Karongi', 'Rutsiro', 'Nyamasheke', 'Rusizi', 'Ngororero', 'Nyabihu'],
-      path: 'M50,50 L90,40 L170,80 L190,110 L150,150 L90,150 L50,100 Z' // West
-    },
-    {
-      id: 'southern',
-      name: 'Southern Province',
-      capital: 'Huye',
-      baseLat: -2.4641,
-      baseLng: 29.6712,
-      districts: ['Huye', 'Nyanza', 'Gisagara', 'Nyaruguru', 'Ruhango', 'Muhanga', 'Kamonyi', 'Nyamagabe'],
-      path: 'M190,110 L240,120 L270,140 L340,160 L320,180 L190,180 L150,150 Z' // South
+  const googleMapInstance = useRef<any>(null);
+  const googleMarkerInstance = useRef<any>(null);
+
+  // Dynamic Google Maps script loader
+  useEffect(() => {
+    const loadGoogleMaps = () => {
+      if (window.google && window.google.maps) {
+        setMapLoaded(true);
+        return;
+      }
+
+      const existingScript = document.getElementById('google-maps-script');
+      if (existingScript) {
+        existingScript.addEventListener('load', () => setMapLoaded(true));
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.id = 'google-maps-script';
+      // Load script without a key if VITE_GOOGLE_MAPS_API_KEY is not defined
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+      script.async = true;
+      script.defer = true;
+      script.addEventListener('load', () => setMapLoaded(true));
+      document.head.appendChild(script);
+    };
+
+    loadGoogleMaps();
+  }, []);
+
+  // Initialize Map
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+
+    // Dark style for Google Maps to fit BurgerHub glassmorphism aesthetic
+    const darkMapStyles = [
+      { elementType: "geometry", stylers: [{ color: "#1e1e24" }] },
+      { elementType: "labels.text.stroke", stylers: [{ color: "#1e1e24" }] },
+      { elementType: "labels.text.fill", stylers: [{ color: "#8a8a93" }] },
+      {
+        featureType: "administrative",
+        elementType: "geometry.stroke",
+        stylers: [{ color: "#2d2d34" }],
+      },
+      {
+        featureType: "landscape.natural",
+        elementType: "geometry",
+        stylers: [{ color: "#17171c" }],
+      },
+      {
+        featureType: "poi",
+        elementType: "geometry",
+        stylers: [{ color: "#222228" }],
+      },
+      {
+        featureType: "poi",
+        elementType: "labels.text.fill",
+        stylers: [{ color: "#a5a5af" }],
+      },
+      {
+        featureType: "road",
+        elementType: "geometry",
+        stylers: [{ color: "#2a2a33" }],
+      },
+      {
+        featureType: "road.highway",
+        elementType: "geometry",
+        stylers: [{ color: "#ff4500", lightness: -20 }],
+      },
+      {
+        featureType: "water",
+        elementType: "geometry",
+        stylers: [{ color: "#121216" }],
+      },
+    ];
+
+    const defaultLatLng = { lat: -1.9441, lng: 30.0619 }; // Kigali, Rwanda center
+
+    const mapOptions = {
+      center: defaultLatLng,
+      zoom: 13,
+      styles: darkMapStyles,
+      disableDefaultUI: false,
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+    };
+
+    const map = new window.google.maps.Map(mapRef.current, mapOptions);
+    googleMapInstance.current = map;
+
+    // Create marker
+    const marker = new window.google.maps.Marker({
+      position: defaultLatLng,
+      map: map,
+      draggable: true,
+      animation: window.google.maps.Animation.DROP,
+      title: "Drag me to your delivery spot",
+    });
+    googleMarkerInstance.current = marker;
+
+    // Update coordinates & geocode on drag
+    const updateLocationDetails = (lat: number, lng: number) => {
+      const coordsStr = `${lat.toFixed(5)}° S, ${lng.toFixed(5)}° E`;
+      setSelectedCoords(coordsStr);
+
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ location: { lat, lng } }, (results: any, status: string) => {
+        let fullAddress = `Kigali Province (Pin: ${coordsStr})`;
+        let district = "Nyarugenge";
+
+        if (status === "OK" && results && results[0]) {
+          fullAddress = results[0].formatted_address;
+          
+          // Parse district (usually administrative_area_level_2 in Rwanda)
+          for (const component of results[0].address_components) {
+            if (
+              component.types.includes("administrative_area_level_2") ||
+              component.types.includes("sublocality") ||
+              component.types.includes("locality")
+            ) {
+              district = component.long_name.replace(" District", "");
+              break;
+            }
+          }
+        }
+
+        setSelectedAddress(fullAddress);
+        setSelectedDistrict(district);
+        onLocationSelected(fullAddress, district, coordsStr);
+      });
+    };
+
+    // Prompt user for location permission
+    if (navigator.geolocation) {
+      setLoadingLoc(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLoadingLoc(false);
+          const userLatLng = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          map.setCenter(userLatLng);
+          marker.setPosition(userLatLng);
+          updateLocationDetails(userLatLng.lat, userLatLng.lng);
+        },
+        (error) => {
+          setLoadingLoc(false);
+          console.warn("Geolocation prompt rejected or failed. Centering Kigali.", error);
+          // Geocode default position
+          updateLocationDetails(defaultLatLng.lat, defaultLatLng.lng);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      updateLocationDetails(defaultLatLng.lat, defaultLatLng.lng);
     }
-  ];
 
-  const handleMapClick = (e: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
-    if (!svgRef.current) return;
+    // Map click listeners
+    map.addListener("click", (e: any) => {
+      if (e.latLng) {
+        marker.setPosition(e.latLng);
+        updateLocationDetails(e.latLng.lat(), e.latLng.lng());
+      }
+    });
 
-    // Get click coords relative to SVG
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    marker.addListener("dragend", () => {
+      const pos = marker.getPosition();
+      if (pos) {
+        updateLocationDetails(pos.lat(), pos.lng());
+      }
+    });
+  }, [mapLoaded]);
 
-    // Convert coords relative to viewBox 0 0 440 200
-    const viewBoxX = (x / rect.width) * 440;
-    const viewBoxY = (y / rect.height) * 200;
+  // Search Address handler
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim() || !window.google) return;
 
-    // Determine which province was clicked based on path intersections or select default closest
-    // Since SVG paths handles mouse clicks, if clicked on background, we find closest region
-    setPinPos({ x: viewBoxX, y: viewBoxY });
-  };
+    setErrorMsg('');
+    const geocoder = new window.google.maps.Geocoder();
+    // Restrict search results to Rwanda context
+    geocoder.geocode({ address: searchQuery + ", Rwanda" }, (results: any, status: string) => {
+      if (status === "OK" && results && results[0]) {
+        const loc = results[0].geometry.location;
+        const lat = loc.lat();
+        const lng = loc.lng();
 
-  const handleRegionClick = (prov: typeof provinces[0], e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (!svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const viewBoxX = (x / rect.width) * 440;
-    const viewBoxY = (y / rect.height) * 200;
+        if (googleMapInstance.current) {
+          googleMapInstance.current.setCenter(loc);
+          googleMapInstance.current.setZoom(15);
+        }
+        if (googleMarkerInstance.current) {
+          googleMarkerInstance.current.setPosition(loc);
+        }
 
-    setPinPos({ x: viewBoxX, y: viewBoxY });
-    setSelectedRegion(prov.name);
-    
-    // Choose a random district in the clicked province for realism
-    const randomDistrict = prov.districts[Math.floor(Math.random() * prov.districts.length)];
-    setDistrict(randomDistrict);
+        const coordsStr = `${lat.toFixed(5)}° S, ${lng.toFixed(5)}° E`;
+        setSelectedCoords(coordsStr);
+        setSelectedAddress(results[0].formatted_address);
 
-    // Calculate a small offset to latitude/longitude based on click positioning relative to center
-    const latOffset = ((viewBoxY - 100) / 100) * 0.4;
-    const lngOffset = ((viewBoxX - 220) / 220) * 0.5;
-    const finalLat = (prov.baseLat + latOffset).toFixed(4);
-    const finalLng = (prov.baseLng + lngOffset).toFixed(4);
-    const coordsStr = `${Math.abs(Number(finalLat))}° S, ${finalLng}° E`;
-    
-    setCoordinates(coordsStr);
-
-    const fullAddr = `${prov.name}, ${randomDistrict} District (Map Pin: ${coordsStr})`;
-    onLocationSelected(fullAddr, randomDistrict, coordsStr);
+        let district = "Nyarugenge";
+        for (const component of results[0].address_components) {
+          if (
+            component.types.includes("administrative_area_level_2") ||
+            component.types.includes("sublocality") ||
+            component.types.includes("locality")
+          ) {
+            district = component.long_name.replace(" District", "");
+            break;
+          }
+        }
+        setSelectedDistrict(district);
+        onLocationSelected(results[0].formatted_address, district, coordsStr);
+      } else {
+        setErrorMsg('Location not found. Try adding a specific district or landmark (e.g. "Kiyovu, Kigali").');
+      }
+    });
   };
 
   return (
@@ -115,64 +249,59 @@ export const RwandaMap: React.FC<RwandaMapProps> = ({ onLocationSelected }) => {
         <Compass size={18} className="compass-icon color-primary animate-float" />
         <div>
           <h4>Interactive Delivery Map</h4>
-          <p className="map-instructions">Click on your province below to drop your delivery pin.</p>
+          <p className="map-instructions">Pin your delivery spot on the live Google Map below or search.</p>
         </div>
       </div>
 
-      <div className="map-view-wrapper">
-        <svg
-          ref={svgRef}
-          viewBox="0 0 440 200"
-          className="rwanda-svg-canvas"
-          onClick={handleMapClick}
+      {/* Modern Search bar inside map card */}
+      <form onSubmit={handleSearch} className="map-search-box">
+        <div className="card-input-wrapper" style={{ flex: 1 }}>
+          <input
+            type="text"
+            className="form-input"
+            style={{ paddingRight: '40px' }}
+            placeholder="Search address, landmark, or town in Rwanda..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <span className="input-icon" style={{ right: '12px', left: 'auto', pointerEvents: 'none' }}>
+            <MapPin size={16} />
+          </span>
+        </div>
+        <button type="submit" className="btn btn-primary" style={{ padding: '0 18px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Search size={16} /> Search
+        </button>
+      </form>
+
+      {errorMsg && <p className="text-danger" style={{ fontSize: '12px', marginTop: '-6px', marginBottom: '10px' }}>⚠️ {errorMsg}</p>}
+      {loadingLoc && <p className="text-muted" style={{ fontSize: '12px', marginTop: '-6px', marginBottom: '10px' }}>⏳ Accessing browser GPS location coordinates...</p>}
+
+      <div className="map-view-wrapper" style={{ padding: 0, height: '350px' }}>
+        <div
+          ref={mapRef}
+          style={{ width: '100%', height: '100%', minHeight: '350px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}
         >
-          {/* Background grid representation */}
-          <defs>
-            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.015)" strokeWidth="1" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-
-          {/* Render Provinces */}
-          {provinces.map(prov => {
-            const isSelected = selectedRegion === prov.name;
-            return (
-              <path
-                key={prov.id}
-                d={prov.path}
-                className={`province-path ${prov.id}-province ${isSelected ? 'selected' : ''}`}
-                onClick={(e) => handleRegionClick(prov, e)}
-              />
-            );
-          })}
-
-          {/* Pulse Pin animation */}
-          {pinPos && (
-            <g className="map-marker-pin" transform={`translate(${pinPos.x}, ${pinPos.y})`}>
-              <circle r="12" className="marker-glow-pulse" />
-              <circle r="4" fill="var(--primary)" />
-              <g transform="translate(-8, -20)">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="var(--primary)" transform="scale(0.7) translate(-3, -3)"/>
-              </g>
-            </g>
+          {!mapLoaded && (
+            <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+              Loading interactive map...
+            </div>
           )}
-        </svg>
+        </div>
       </div>
 
-      {pinPos && (
+      {selectedCoords && (
         <div className="map-coordinates-bar animate-fade-in">
           <div className="coord-row">
-            <span className="coord-label">Selected Province:</span>
-            <span className="coord-value">{selectedRegion}</span>
+            <span className="coord-label">Geocoded Address:</span>
+            <span className="coord-value">{selectedAddress}</span>
           </div>
           <div className="coord-row">
-            <span className="coord-label">Auto-detected District:</span>
-            <span className="coord-value font-orange">{district} District</span>
+            <span className="coord-label">City/District:</span>
+            <span className="coord-value font-orange">{selectedDistrict} District</span>
           </div>
           <div className="coord-row">
-            <span className="coord-label">GPS coordinates:</span>
-            <span className="coord-value font-mono">{coordinates}</span>
+            <span className="coord-label">GPS Coordinates:</span>
+            <span className="coord-value font-mono">{selectedCoords}</span>
           </div>
         </div>
       )}
