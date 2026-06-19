@@ -151,7 +151,6 @@ export const AdminDashboard: React.FC = () => {
       setUsers(defaultUsers);
       localStorage.setItem('burgerhub_users', JSON.stringify(defaultUsers));
     }
-
     // Seed/Load categories & menu items
     const savedCategories = localStorage.getItem('burgerhub_menu_categories');
     let cats = [];
@@ -503,7 +502,6 @@ export const AdminDashboard: React.FC = () => {
       }
     }
   };
-
   const handleRemoveStaff = (id: string, role: 'chef' | 'rider') => {
     if (role === 'chef') {
       const updated = chefs.filter(c => c.id !== id);
@@ -851,7 +849,7 @@ export const AdminDashboard: React.FC = () => {
                             >
                               Edit
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleRemoveStaff(chef.id, 'chef')}
                               className="btn-remove"
                             >
@@ -936,7 +934,7 @@ export const AdminDashboard: React.FC = () => {
                             >
                               Edit
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleRemoveStaff(rider.id, 'rider')}
                               className="btn-remove"
                             >
@@ -1209,6 +1207,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
+
         {activeTab === 'users' && (
           <div className="menu-management-section animate-fade-in mt-4">
             <div className="card" style={{ padding: '24px' }}>
@@ -1458,7 +1457,6 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       )}
-
       {/* Edit Staff Modal */}
       {editingStaff && (
         <div className="admin-modal-overlay" onClick={() => setEditingStaff(null)}>
@@ -1668,7 +1666,6 @@ export const AdminDashboard: React.FC = () => {
           </form>
         </div>
       )}
-
     </div>
   );
 };

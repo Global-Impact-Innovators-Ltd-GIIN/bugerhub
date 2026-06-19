@@ -27,7 +27,6 @@ export const Header: React.FC = () => {
     setIsChef(!!chefSession);
     setIsRider(!!riderSession);
   }, [location.pathname]);
-
   const toggleCart = () => setIsCartOpen(!isCartOpen);
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
@@ -74,7 +73,6 @@ export const Header: React.FC = () => {
                 Sign In
               </Link>
             )}
-
             <button className="cart-trigger-btn" onClick={toggleCart} aria-label="Open Cart">
               <ShoppingCart size={22} />
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}

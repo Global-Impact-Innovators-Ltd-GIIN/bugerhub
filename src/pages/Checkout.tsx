@@ -59,7 +59,6 @@ export const Checkout: React.FC = () => {
   // User Profile pre-filling state
   const [activeUser, setActiveUser] = useState<any>(null);
   const [saveToProfile, setSaveToProfile] = useState(false);
-
   useEffect(() => {
     localStorage.setItem('burgerhub_momo_uuid', momoUuid);
   }, [momoUuid]);
@@ -104,7 +103,6 @@ export const Checkout: React.FC = () => {
     const updatedList = usersList.map((u: any) => u.id === userObj.id ? { ...u, ...profileData } : u);
     localStorage.setItem('burgerhub_users', JSON.stringify(updatedList));
   };
-
   // Helper: Format amount with selected currency symbol
   const formatAmount = (usdAmount: number) => {
     if (currency === 'RWF') {
@@ -320,7 +318,6 @@ export const Checkout: React.FC = () => {
       if (saveToProfile && activeUser) {
         updateUserProfile({ name, email, phone, address, city, zipCode });
       }
-
       placeOrder(details);
       navigate('/tracking');
     }
@@ -382,7 +379,6 @@ export const Checkout: React.FC = () => {
         if (saveToProfile && activeUser) {
           updateUserProfile({ name, email, phone, address, city, zipCode });
         }
-
         placeOrder(details);
         setIsProcessing(false);
         navigate('/tracking');
@@ -504,7 +500,6 @@ export const Checkout: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-
               {activeUser && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '12px' }}>
                   <input 
