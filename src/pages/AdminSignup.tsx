@@ -12,11 +12,6 @@ export const AdminSignup: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If already logged in, redirect
-    const activeSession = localStorage.getItem('burgerhub_active_admin');
-    if (activeSession) {
-      navigate('/admin/dashboard');
-    }
   }, [navigate]);
 
   const handleSignup = (e: React.FormEvent) => {
@@ -45,7 +40,7 @@ export const AdminSignup: React.FC = () => {
 
     admins.push(newAdmin);
     localStorage.setItem('burgerhub_admins', JSON.stringify(admins));
-    localStorage.setItem('burgerhub_active_admin', JSON.stringify({ email: newAdmin.email, name: newAdmin.name }));
+    sessionStorage.setItem('burgerhub_active_admin', JSON.stringify({ email: newAdmin.email, name: newAdmin.name }));
     
     navigate('/admin/dashboard');
   };

@@ -21,12 +21,6 @@ export const ChefLogin: React.FC = () => {
       ];
       localStorage.setItem('burgerhub_chefs', JSON.stringify(defaultChefs));
     }
-
-    // Check active session
-    const activeSession = localStorage.getItem('burgerhub_active_chef');
-    if (activeSession) {
-      navigate('/chef/dashboard');
-    }
   }, [navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -37,7 +31,7 @@ export const ChefLogin: React.FC = () => {
     const matchedChef = chefs.find((c: any) => c.email.toLowerCase() === email.toLowerCase().trim() && c.password === password);
 
     if (matchedChef) {
-      localStorage.setItem('burgerhub_active_chef', JSON.stringify(matchedChef));
+      sessionStorage.setItem('burgerhub_active_chef', JSON.stringify(matchedChef));
       navigate('/chef/dashboard');
     } else {
       setError('Invalid chef email or password. Please use pre-configured logins.');

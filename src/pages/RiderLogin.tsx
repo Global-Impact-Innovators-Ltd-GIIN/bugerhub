@@ -21,12 +21,6 @@ export const RiderLogin: React.FC = () => {
       ];
       localStorage.setItem('burgerhub_riders', JSON.stringify(defaultRiders));
     }
-
-    // Check active session
-    const activeSession = localStorage.getItem('burgerhub_active_rider');
-    if (activeSession) {
-      navigate('/rider/dashboard');
-    }
   }, [navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -37,7 +31,7 @@ export const RiderLogin: React.FC = () => {
     const matchedRider = riders.find((r: any) => r.email.toLowerCase() === email.toLowerCase().trim() && r.password === password);
 
     if (matchedRider) {
-      localStorage.setItem('burgerhub_active_rider', JSON.stringify(matchedRider));
+      sessionStorage.setItem('burgerhub_active_rider', JSON.stringify(matchedRider));
       navigate('/rider/dashboard');
     } else {
       setError('Invalid rider email or password. Please use pre-configured logins.');

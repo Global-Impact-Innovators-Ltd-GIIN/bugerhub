@@ -15,7 +15,7 @@ export const RiderDashboard: React.FC = () => {
   const [mapProgress, setMapProgress] = useState(0);
 
   useEffect(() => {
-    const session = localStorage.getItem('burgerhub_active_rider');
+    const session = sessionStorage.getItem('burgerhub_active_rider');
     if (!session) {
       navigate('/rider/login');
       return;
@@ -62,7 +62,7 @@ export const RiderDashboard: React.FC = () => {
   }, [rider]);
 
   const handleLogout = () => {
-    localStorage.removeItem('burgerhub_active_rider');
+    sessionStorage.removeItem('burgerhub_active_rider');
     navigate('/rider/login');
   };
 

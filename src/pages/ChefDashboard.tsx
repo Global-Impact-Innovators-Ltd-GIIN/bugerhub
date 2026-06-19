@@ -16,7 +16,7 @@ export const ChefDashboard: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    const session = localStorage.getItem('burgerhub_active_chef');
+    const session = sessionStorage.getItem('burgerhub_active_chef');
     if (!session) {
       navigate('/chef/login');
       return;
@@ -46,7 +46,7 @@ export const ChefDashboard: React.FC = () => {
   }, [navigate, orders]);
 
   const handleLogout = () => {
-    localStorage.removeItem('burgerhub_active_chef');
+    sessionStorage.removeItem('burgerhub_active_chef');
     navigate('/chef/login');
   };
 

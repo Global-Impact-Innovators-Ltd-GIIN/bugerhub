@@ -18,9 +18,9 @@ export const Header: React.FC = () => {
 
   useEffect(() => {
     const userSession = localStorage.getItem('burgerhub_active_user');
-    const adminSession = localStorage.getItem('burgerhub_active_admin');
-    const chefSession = localStorage.getItem('burgerhub_active_chef');
-    const riderSession = localStorage.getItem('burgerhub_active_rider');
+    const adminSession = sessionStorage.getItem('burgerhub_active_admin');
+    const chefSession = sessionStorage.getItem('burgerhub_active_chef');
+    const riderSession = sessionStorage.getItem('burgerhub_active_rider');
 
     setCurrentUser(userSession ? JSON.parse(userSession) : null);
     setIsAdmin(!!adminSession);

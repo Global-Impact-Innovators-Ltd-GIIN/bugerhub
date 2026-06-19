@@ -16,12 +16,6 @@ export const AdminLogin: React.FC = () => {
       const defaultAdmins = [{ email: 'admin@burgerhub.com', password: 'admin123', name: 'Master Admin' }];
       localStorage.setItem('burgerhub_admins', JSON.stringify(defaultAdmins));
     }
-
-    // If already logged in, redirect
-    const activeSession = localStorage.getItem('burgerhub_active_admin');
-    if (activeSession) {
-      navigate('/admin/dashboard');
-    }
   }, [navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -32,7 +26,7 @@ export const AdminLogin: React.FC = () => {
     const matchedAdmin = admins.find((a: any) => a.email.toLowerCase() === email.toLowerCase().trim() && a.password === password);
 
     if (matchedAdmin) {
-      localStorage.setItem('burgerhub_active_admin', JSON.stringify({ email: matchedAdmin.email, name: matchedAdmin.name }));
+      sessionStorage.setItem('burgerhub_active_admin', JSON.stringify({ email: matchedAdmin.email, name: matchedAdmin.name }));
       navigate('/admin/dashboard');
     } else {
       setError('Invalid email or password. Please use the sandbox demo credentials.');

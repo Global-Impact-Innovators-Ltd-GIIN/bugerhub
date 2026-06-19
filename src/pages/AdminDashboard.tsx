@@ -87,7 +87,7 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     // Strict Authentication Guard
-    const session = localStorage.getItem('burgerhub_active_admin');
+    const session = sessionStorage.getItem('burgerhub_active_admin');
     if (!session) {
       navigate('/admin/login');
       return;
@@ -98,7 +98,7 @@ export const AdminDashboard: React.FC = () => {
     const admins = JSON.parse(localStorage.getItem('burgerhub_admins') || '[]');
     const verifiedAdmin = admins.find((a: any) => a.email.toLowerCase() === adminObj.email?.toLowerCase());
     if (!verifiedAdmin) {
-      localStorage.removeItem('burgerhub_active_admin');
+      sessionStorage.removeItem('burgerhub_active_admin');
       navigate('/admin/login');
       return;
     }
@@ -513,7 +513,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('burgerhub_active_admin');
+    sessionStorage.removeItem('burgerhub_active_admin');
     navigate('/admin/login');
   };
 
