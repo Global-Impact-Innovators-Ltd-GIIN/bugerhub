@@ -33,6 +33,10 @@ export interface CheckoutDetails {
   momoProvider?: 'mtn' | 'airtel';
   momoPhone?: string;
   currency?: 'USD' | 'RWF';
+  couponApplied?: string;
+  couponDiscount?: number;
+  coinsRedeemed?: number;
+  coinsDiscount?: number;
 }
 
 export interface Order {
@@ -189,9 +193,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const placeOrder = (details: CheckoutDetails): Order => {
     const subtotal = cartSubtotal;
-    const tax = subtotal * 0.08; // 8% sales tax
-    const deliveryFee = details.deliveryMethod === 'delivery' ? 3.99 : 0;
-    const total = subtotal + tax + deliveryFee;
+    const couponDiscount = details.couponDiscount || 0;
+    const coinsDiscount = details.coinsDiscount || 0;
+
+    const finalSubtotal = Math.max(0, subtotal - couponDiscount - coinsDiscount);
+    const tax = finalSubtotal * 0.08;
+
+    let deliveryFee = details.deliveryMethod === 'delivery' ? 3.99 : 0;
+    if (details.couponApplied === 'FREEKIGALI') {
+      deliveryFee = 0;
+    }
+
+    const total = finalSubtotal + tax + deliveryFee;
 
     const newOrder: Order = {
       id: 'BH-' + Math.floor(100000 + Math.random() * 900000),

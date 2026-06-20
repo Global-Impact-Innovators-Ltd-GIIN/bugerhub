@@ -17,6 +17,15 @@ export const Checkout: React.FC = () => {
   // Currency State
   const [currency, setCurrency] = useState<'USD' | 'RWF'>('RWF');
 
+  // Promo Code Engine States
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState('');
+
+  // Loyalty Rewards States
+  const [userCoins, setUserCoins] = useState(0);
+  const [redeemCoinsChecked, setRedeemCoinsChecked] = useState(false);
+
   // Form State
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
   const [name, setName] = useState('');
@@ -89,8 +98,38 @@ export const Checkout: React.FC = () => {
       // Clean phone for momo phone
       const rawPhone = userObj.phone ? userObj.phone.replace(/\D/g, '') : '';
       setMomoPhone(rawPhone.slice(-9));
+
+      // Load BurgerCoins
+      const coinsKey = `burgerhub_coins_${userObj.email.toLowerCase()}`;
+      const savedCoins = localStorage.getItem(coinsKey);
+      if (savedCoins !== null) {
+        setUserCoins(Number(savedCoins));
+      } else {
+        // Initial setup for the demo customer: give them 15,000 BurgerCoins to start
+        const initialCoins = userObj.email.toLowerCase() === 'customer@burgerhub.com' ? 15000 : 3000;
+        localStorage.setItem(coinsKey, initialCoins.toString());
+        setUserCoins(initialCoins);
+      }
     }
   }, []);
+
+  const handleApplyPromo = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setPromoError('');
+    const cleanCode = promoCodeInput.toUpperCase().trim();
+    if (cleanCode === 'BURGERLOVE' || cleanCode === 'WELCOME5000' || cleanCode === 'FREEKIGALI') {
+      setAppliedPromo(cleanCode);
+      setPromoError('');
+    } else {
+      setPromoError('Invalid coupon code. Try WELCOME5000 or BURGERLOVE!');
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput('');
+    setPromoError('');
+  };
 
   const updateUserProfile = (details: { name: string, email: string, phone: string, address: string, city: string, zipCode: string }) => {
     const session = localStorage.getItem('burgerhub_active_user') || sessionStorage.getItem('burgerhub_active_user');
@@ -341,12 +380,39 @@ export const Checkout: React.FC = () => {
         zipCode: deliveryMethod === 'delivery' ? zipCode : 'N/A',
         deliveryMethod,
         paymentMethod: 'cash',
-        currency
+        currency,
+        couponApplied: appliedPromo || undefined,
+        couponDiscount: promoDiscount,
+        coinsRedeemed: coinsRedeemed || undefined,
+        coinsDiscount: coinsDiscount || undefined
       };
       
       if (saveToProfile && activeUser) {
         updateUserProfile({ name, email, phone, address, city, zipCode });
       }
+
+      // Update BurgerCoins
+      if (activeUser) {
+        const coinsKey = `burgerhub_coins_${activeUser.email.toLowerCase()}`;
+        const earnedCoins = Math.round(finalSubtotal * EXCHANGE_RATE * 0.05);
+        const newBalance = userCoins - coinsRedeemed + earnedCoins;
+        localStorage.setItem(coinsKey, newBalance.toString());
+
+        // Add transaction history
+        const historyKey = `burgerhub_coins_history_${activeUser.email.toLowerCase()}`;
+        const currentHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+        const newTx = {
+          id: 'TX-' + Math.floor(100000 + Math.random() * 900000),
+          date: new Date().toLocaleDateString(),
+          type: coinsRedeemed > 0 ? 'redeemed_and_earned' : 'earned',
+          redeemed: coinsRedeemed,
+          earned: earnedCoins,
+          balance: newBalance,
+          orderId: 'BH-' + Math.floor(100000 + Math.random() * 900000)
+        };
+        localStorage.setItem(historyKey, JSON.stringify([newTx, ...currentHistory]));
+      }
+
       placeOrder(details);
       navigate('/tracking');
     }
@@ -402,12 +468,39 @@ export const Checkout: React.FC = () => {
           momoProvider: paymentMethod === 'momo' ? momoProvider : undefined,
           momoPhone: paymentMethod === 'momo' ? momoPhone : undefined,
           cardNumberMuted: paymentMethod === 'stripe' ? `•••• •••• •••• ${cardNumber.slice(-4)}` : undefined,
-          currency
+          currency,
+          couponApplied: appliedPromo || undefined,
+          couponDiscount: promoDiscount,
+          coinsRedeemed: coinsRedeemed || undefined,
+          coinsDiscount: coinsDiscount || undefined
         };
 
         if (saveToProfile && activeUser) {
           updateUserProfile({ name, email, phone, address, city, zipCode });
         }
+
+        // Update BurgerCoins
+        if (activeUser) {
+          const coinsKey = `burgerhub_coins_${activeUser.email.toLowerCase()}`;
+          const earnedCoins = Math.round(finalSubtotal * EXCHANGE_RATE * 0.05);
+          const newBalance = userCoins - coinsRedeemed + earnedCoins;
+          localStorage.setItem(coinsKey, newBalance.toString());
+
+          // Add transaction history
+          const historyKey = `burgerhub_coins_history_${activeUser.email.toLowerCase()}`;
+          const currentHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          const newTx = {
+            id: 'TX-' + Math.floor(100000 + Math.random() * 900000),
+            date: new Date().toLocaleDateString(),
+            type: coinsRedeemed > 0 ? 'redeemed_and_earned' : 'earned',
+            redeemed: coinsRedeemed,
+            earned: earnedCoins,
+            balance: newBalance,
+            orderId: 'BH-' + Math.floor(100000 + Math.random() * 900000)
+          };
+          localStorage.setItem(historyKey, JSON.stringify([newTx, ...currentHistory]));
+        }
+
         placeOrder(details);
         setIsProcessing(false);
         navigate('/tracking');
@@ -416,9 +509,32 @@ export const Checkout: React.FC = () => {
   };
 
   const subtotal = cartSubtotal;
-  const tax = subtotal * 0.08;
-  const deliveryFee = deliveryMethod === 'delivery' ? 3.99 : 0;
-  const total = subtotal + tax + deliveryFee;
+
+  let promoDiscount = 0;
+  if (appliedPromo === 'BURGERLOVE') {
+    promoDiscount = subtotal * 0.15;
+  } else if (appliedPromo === 'WELCOME5000') {
+    promoDiscount = 5000 / EXCHANGE_RATE; // 5000 RWF off
+  }
+
+  const subtotalAfterPromo = Math.max(0, subtotal - promoDiscount);
+
+  let coinsRedeemed = 0;
+  if (redeemCoinsChecked && activeUser) {
+    const subtotalAfterPromoRWF = Math.round(subtotalAfterPromo * EXCHANGE_RATE);
+    coinsRedeemed = Math.min(userCoins, subtotalAfterPromoRWF);
+  }
+  const coinsDiscount = coinsRedeemed / EXCHANGE_RATE;
+
+  const finalSubtotal = Math.max(0, subtotalAfterPromo - coinsDiscount);
+  const tax = finalSubtotal * 0.08;
+
+  let deliveryFee = deliveryMethod === 'delivery' ? 3.99 : 0;
+  if (appliedPromo === 'FREEKIGALI') {
+    deliveryFee = 0;
+  }
+
+  const total = finalSubtotal + tax + deliveryFee;
 
   const cardBrand = getCardBrand(cardNumber);
 
@@ -626,6 +742,123 @@ export const Checkout: React.FC = () => {
                 )}
               </div>
             )}
+
+            {/* Promo Code & BurgerCoin Loyalty Section */}
+            <div className="checkout-section card">
+              <h3>Rewards & Promo Codes</h3>
+              
+              {/* BurgerCoin Loyalty Box */}
+              <div className="loyalty-box" style={{ background: 'rgba(255, 69, 0, 0.02)', border: '1px solid rgba(255, 69, 0, 0.1)', padding: '16px', borderRadius: 'var(--radius-md)', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '20px' }}>🪙</span>
+                  <h4 style={{ margin: 0, fontSize: '15px', color: 'var(--text-primary)' }}>BurgerCoin Loyalty Club</h4>
+                </div>
+                {activeUser ? (
+                  <div>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      You have <strong style={{ color: 'var(--primary)' }}>{userCoins.toLocaleString()} BurgerCoins</strong> (equivalent to {formatAmount(userCoins / EXCHANGE_RATE)}).
+                    </p>
+                    {userCoins > 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input 
+                          type="checkbox" 
+                          id="redeemCoinsCheckbox"
+                          checked={redeemCoinsChecked}
+                          onChange={(e) => setRedeemCoinsChecked(e.target.checked)}
+                          style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                        />
+                        <label htmlFor="redeemCoinsCheckbox" style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}>
+                          Redeem my coins for instant discount on this order
+                        </label>
+                      </div>
+                    ) : (
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        Place orders to earn 5% cashback in BurgerCoins!
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
+                    🔒 <Link to="/login?redirect=/checkout" className="orange-link">Sign in</Link> to redeem or earn BurgerCoin loyalty rewards on this purchase.
+                  </p>
+                )}
+              </div>
+
+              {/* Promo Code Engine */}
+              <div className="promo-engine-box">
+                <label className="form-label">Have a promo code?</label>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter code (e.g. WELCOME5000)"
+                    className="form-input"
+                    style={{ textTransform: 'uppercase' }}
+                    value={promoCodeInput}
+                    onChange={(e) => setPromoCodeInput(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPromo()}
+                    className="btn btn-secondary"
+                    style={{ padding: '0 20px', flexShrink: 0 }}
+                  >
+                    Apply
+                  </button>
+                </div>
+
+                {promoError && (
+                  <p style={{ color: 'var(--accent-red)', fontSize: '12px', margin: '6px 0 0 0' }}>{promoError}</p>
+                )}
+
+                {appliedPromo && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.2)', padding: '10px 14px', borderRadius: 'var(--radius-md)', marginTop: '12px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--accent-green)', fontWeight: 600 }}>
+                      ✓ Applied: {appliedPromo} ({
+                        appliedPromo === 'BURGERLOVE' ? '15% Off Subtotal' : 
+                        appliedPromo === 'WELCOME5000' ? '5,000 RWF Off' : 'Free Kigali Delivery'
+                      })
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemovePromo}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+
+                {/* Clickable Recommended Coupons */}
+                <div className="quick-coupons" style={{ marginTop: '16px' }}>
+                  <p style={{ margin: '0 0 8px 0', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    ⚡ Available Sandbox Offers (Click to Apply)
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setPromoCodeInput('WELCOME5000'); handleApplyPromo(); }}
+                      style={{ background: 'rgba(255, 69, 0, 0.05)', border: '1px solid rgba(255, 69, 0, 0.15)', borderRadius: '100px', padding: '6px 12px', fontSize: '11px', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      WELCOME5000 (5,000 RWF Off)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPromoCodeInput('BURGERLOVE'); handleApplyPromo(); }}
+                      style={{ background: 'rgba(255, 69, 0, 0.05)', border: '1px solid rgba(255, 69, 0, 0.15)', borderRadius: '100px', padding: '6px 12px', fontSize: '11px', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      BURGERLOVE (15% Off)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPromoCodeInput('FREEKIGALI'); handleApplyPromo(); }}
+                      style={{ background: 'rgba(255, 69, 0, 0.05)', border: '1px solid rgba(255, 69, 0, 0.15)', borderRadius: '100px', padding: '6px 12px', fontSize: '11px', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      FREEKIGALI (Free Delivery)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Payment Method selection */}
             <div className="checkout-section card">
@@ -852,6 +1085,18 @@ export const Checkout: React.FC = () => {
                   <span>Subtotal</span>
                   <span>{formatAmount(subtotal)}</span>
                 </div>
+                {promoDiscount > 0 && (
+                  <div className="summary-row" style={{ color: 'var(--accent-red)' }}>
+                    <span>Coupon Savings ({appliedPromo})</span>
+                    <span>-{formatAmount(promoDiscount)}</span>
+                  </div>
+                )}
+                {coinsRedeemed > 0 && (
+                  <div className="summary-row" style={{ color: 'var(--accent-red)' }}>
+                    <span>Loyalty Discount ({coinsRedeemed.toLocaleString()} Coins)</span>
+                    <span>-{formatAmount(coinsDiscount)}</span>
+                  </div>
+                )}
                 <div className="summary-row">
                   <span>Sales Tax (8%)</span>
                   <span>{formatAmount(tax)}</span>
@@ -860,6 +1105,12 @@ export const Checkout: React.FC = () => {
                   <span>Delivery Fee</span>
                   <span>{deliveryFee > 0 ? formatAmount(deliveryFee) : 'FREE'}</span>
                 </div>
+                {activeUser && (
+                  <div className="summary-row" style={{ color: 'var(--accent-green)', fontSize: '12px', borderTop: '1px dashed rgba(255,255,255,0.05)', paddingTop: '6px', marginTop: '6px' }}>
+                    <span>Earning Cashback</span>
+                    <span>+{Math.round(finalSubtotal * EXCHANGE_RATE * 0.05).toLocaleString()} Coins</span>
+                  </div>
+                )}
                 <div className="summary-divider"></div>
                 <div className="summary-row grand-total-row">
                   <span>Grand Total</span>

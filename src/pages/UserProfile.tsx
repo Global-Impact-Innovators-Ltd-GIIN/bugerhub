@@ -26,6 +26,9 @@ export const UserProfile: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const [coins, setCoins] = useState(0);
+  const [coinsHistory, setCoinsHistory] = useState<any[]>([]);
+
   useEffect(() => {
     const loadProfileData = async () => {
       const session = localStorage.getItem('burgerhub_active_user') || sessionStorage.getItem('burgerhub_active_user');
@@ -41,6 +44,11 @@ export const UserProfile: React.FC = () => {
       setAddress(userObj.address || '');
       setCity(userObj.city || '');
       setZipCode(userObj.zipCode || '');
+
+      const coinsKey = `burgerhub_coins_${userObj.email.toLowerCase()}`;
+      const historyKey = `burgerhub_coins_history_${userObj.email.toLowerCase()}`;
+      setCoins(Number(localStorage.getItem(coinsKey) || '0'));
+      setCoinsHistory(JSON.parse(localStorage.getItem(historyKey) || '[]'));
 
       const dbUsers = await fetchUsers();
       const matchingUser = dbUsers.find((u: any) => u.id === userObj.id);
@@ -126,6 +134,15 @@ export const UserProfile: React.FC = () => {
 
   // Filter orders matching logged in user's email
   const myOrders = orders.filter(o => o.details.email.toLowerCase() === user.email.toLowerCase());
+
+  const getTier = (pts: number) => {
+    if (pts >= 10000) return { tier: 'Platinum', next: 'Max Tier reached!', target: 10000 };
+    if (pts >= 5000) return { tier: 'Gold', next: 'Platinum', target: 10000 };
+    if (pts >= 2000) return { tier: 'Silver', next: 'Gold', target: 5000 };
+    return { tier: 'Bronze', next: 'Silver', target: 2000 };
+  };
+
+  const { tier: userTier, next: nextTier, target: tierTarget } = getTier(coins);
 
   return (
     <div className="user-profile-page animate-fade-in">
@@ -286,8 +303,98 @@ export const UserProfile: React.FC = () => {
             </form>
           </div>
 
-          {/* Order History */}
-          <div className="profile-card card">
+          {/* Right Side Column: Loyalty Program & Order History */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+            {/* BurgerCoin Loyalty Card */}
+            <div className="profile-card card loyalty-reward-card" style={{
+              background: 'linear-gradient(135deg, rgba(255, 69, 0, 0.03) 0%, rgba(251, 191, 36, 0.03) 100%)',
+              border: '1px solid rgba(251, 191, 36, 0.2)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+            }}>
+              <div className="profile-card-header" style={{ borderBottom: '1px solid rgba(251, 191, 36, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '24px' }}>🪙</span>
+                  <div>
+                    <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '15px' }}>BurgerCoin Loyalty Club</h4>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Get 5% cashback on all orders</span>
+                  </div>
+                </div>
+                <span className={`tier-badge tier-${userTier.toLowerCase()}`} style={{
+                  background: userTier === 'Platinum' ? 'linear-gradient(90deg, #e5e7eb, #9ca3af)' :
+                              userTier === 'Gold' ? 'linear-gradient(90deg, #fbbf24, #d97706)' :
+                              userTier === 'Silver' ? 'linear-gradient(90deg, #9ca3af, #4b5563)' :
+                              'linear-gradient(90deg, #b45309, #78350f)',
+                  color: '#fff',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: '100px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  {userTier} Tier
+                </span>
+              </div>
+
+              <div style={{ padding: '16px 0 0 0' }}>
+                <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Available Balance</span>
+                  <h3 style={{ fontSize: '28px', fontWeight: 800, margin: '4px 0 0 0', color: 'var(--primary)' }}>
+                    {coins.toLocaleString()} <span style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text-primary)' }}>BurgerCoins</span>
+                  </h3>
+                  <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Equivalent to {formatRWF(coins)}
+                  </p>
+                </div>
+
+                {/* Progress to next tier */}
+                {userTier !== 'Platinum' && (
+                  <div style={{ marginBottom: '16px', background: 'rgba(255,255,255,0.01)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      <span>Next Level: <strong>{nextTier}</strong></span>
+                      <span>{coins} / {tierTarget} Coins</span>
+                    </div>
+                    <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '100px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--primary), #fbbf24)', width: `${Math.min(100, (coins / tierTarget) * 100)}%`, borderRadius: '100px' }}></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Coins Transaction History */}
+                <div>
+                  <h5 style={{ margin: '0 0 10px 0', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Recent Coins Activity
+                  </h5>
+                  <div style={{ maxHeight: '140px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
+                    {coinsHistory.length === 0 ? (
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '15px 0' }}>
+                        No transactions recorded yet.
+                      </p>
+                    ) : (
+                      coinsHistory.map((tx: any) => (
+                        <div key={tx.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border)', padding: '8px 12px', borderRadius: 'var(--radius-md)' }}>
+                          <div>
+                            <strong style={{ fontSize: '12px', color: 'var(--text-primary)' }}>
+                              {tx.type === 'redeemed_and_earned' ? 'Purchase Redemption' : 'Order Cashback'}
+                            </strong>
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block' }}>{tx.date} • {tx.id}</span>
+                          </div>
+                          <div style={{ textAlign: 'right', fontSize: '11px' }}>
+                            {tx.redeemed > 0 && (
+                              <span style={{ color: 'var(--accent-red)', display: 'block', fontWeight: 600 }}>-{tx.redeemed.toLocaleString()} Coins</span>
+                            )}
+                            <span style={{ color: 'var(--accent-green)', display: 'block', fontWeight: 600 }}>+{tx.earned.toLocaleString()} Coins</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Order History */}
+            <div className="profile-card card">
             <div className="profile-card-header">
               <ShoppingBag className="color-orange" size={22} />
               <h4>Order History ({myOrders.length})</h4>
@@ -345,6 +452,7 @@ export const UserProfile: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
