@@ -1528,3 +1528,34 @@
   color: var(--text-secondary);
 }
 
+/* Delegation Selectors styling */
+.delegation-select-container {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.delegation-select {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.delegation-select:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--primary);
+}
+
+.delegation-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+

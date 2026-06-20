@@ -144,6 +144,18 @@ export const AdminDashboard: React.FC = () => {
   const [editUserZipCode, setEditUserZipCode] = useState('');
   const [editUserPassword, setEditUserPassword] = useState('');
 
+  const refreshStaff = async () => {
+    const dbChefs = await fetchChefs();
+    setChefs(dbChefs);
+    const dbRiders = await fetchRiders();
+    setRiders(dbRiders);
+  };
+
+  useEffect(() => {
+    const interval = setInterval(refreshStaff, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     // Strict Authentication Guard
     const session = sessionStorage.getItem('burgerhub_active_admin') || localStorage.getItem('burgerhub_active_admin');
@@ -167,11 +179,7 @@ export const AdminDashboard: React.FC = () => {
       setAdminName(verifiedAdmin.name || 'Admin');
 
       // Load data from Supabase
-      const dbChefs = await fetchChefs();
-      setChefs(dbChefs);
-
-      const dbRiders = await fetchRiders();
-      setRiders(dbRiders);
+      await refreshStaff();
 
       const dbUsers = await fetchUsers();
       setUsers(dbUsers);
@@ -645,6 +653,135 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleAssignChef = async (orderId: string, chefId: string) => {
+    const targetChef = chefs.find(c => c.id === chefId);
+    if (!targetChef) return;
+
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const updatedOrder = {
+      ...order,
+      status: 'cooking' as const,
+      assignedChefId: chefId,
+      assignedChefName: targetChef.name
+    };
+
+    const updatedChefs = chefs.map(c => 
+      c.id === chefId 
+        ? { ...c, status: 'busy' as const, assignedOrderId: orderId } 
+        : c
+    );
+
+    try {
+      await saveOrder(updatedOrder);
+      updateChefsInStorage(updatedChefs);
+      updateOrderStatusInHistory(orderId, 'cooking');
+      
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(updatedOrder);
+      }
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const newLog = {
+        id: Date.now(),
+        time: timeStr,
+        type: 'staff',
+        text: `Chef ${targetChef.name} explicitly assigned to Order ${orderId} by Admin.`
+      };
+      setActivityLogs(prev => [newLog, ...prev]);
+
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, ctx.currentTime);
+          osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.1);
+          osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.05, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.35);
+        }
+      } catch (err) {}
+    } catch (err) {
+      console.error('Failed to assign chef:', err);
+    }
+  };
+
+  const handleAssignRider = async (orderId: string, riderId: string) => {
+    const targetRider = riders.find(r => r.id === riderId);
+    if (!targetRider) return;
+
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const updatedChefs = chefs.map(c => 
+      c.assignedOrderId === orderId 
+        ? { ...c, status: 'idle' as const, assignedOrderId: undefined } 
+        : c
+    );
+    updateChefsInStorage(updatedChefs);
+
+    const updatedOrder = {
+      ...order,
+      status: 'delivering' as const,
+      assignedRiderId: riderId,
+      assignedRiderName: targetRider.name
+    };
+
+    const updatedRiders = riders.map(r => 
+      r.id === riderId 
+        ? { ...r, status: 'busy' as const, assignedOrderId: orderId } 
+        : r
+    );
+
+    try {
+      await saveOrder(updatedOrder);
+      updateRidersInStorage(updatedRiders);
+      updateOrderStatusInHistory(orderId, 'delivering');
+
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(updatedOrder);
+      }
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const newLog = {
+        id: Date.now(),
+        time: timeStr,
+        type: 'staff',
+        text: `Rider ${targetRider.name} explicitly assigned to Order ${orderId} by Admin.`
+      };
+      setActivityLogs(prev => [newLog, ...prev]);
+
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, ctx.currentTime);
+          osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+          osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.05, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.35);
+        }
+      } catch (err) {}
+    } catch (err) {
+      console.error('Failed to assign rider:', err);
+    }
+  };
+
   // Calculations for stats widgets
   const EXCHANGE_RATE = 1300;
   const totalRevenueUSD = orders.reduce((acc, order) => acc + order.total, 0);
@@ -1079,14 +1216,56 @@ export const AdminDashboard: React.FC = () => {
                               </button>
                               
                               {order.status !== 'delivered' && (
-                                <button 
-                                  onClick={() => handleStatusTransition(order.id, order.status)}
-                                  className="btn btn-primary next-status-btn"
-                                >
-                                  {order.status === 'preparing' && 'Cook Patty'}
-                                  {order.status === 'cooking' && 'Dispatch'}
-                                  {order.status === 'delivering' && 'Arrived'} <ChevronRight size={14} />
-                                </button>
+                                <>
+                                  {order.status === 'preparing' && (
+                                    <div className="delegation-select-container">
+                                      <select 
+                                        onChange={(e) => {
+                                          if (e.target.value) {
+                                            handleAssignChef(order.id, e.target.value);
+                                          }
+                                        }}
+                                        defaultValue=""
+                                        className="delegation-select select-chef"
+                                      >
+                                        <option value="" disabled>👩‍🍳 Assign Chef...</option>
+                                        {chefs.map(chef => (
+                                          <option key={chef.id} value={chef.id} disabled={chef.status === 'busy'}>
+                                            {chef.name} ({chef.status.toUpperCase()})
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  )}
+                                  {order.status === 'cooking' && (
+                                    <div className="delegation-select-container">
+                                      <select 
+                                        onChange={(e) => {
+                                          if (e.target.value) {
+                                            handleAssignRider(order.id, e.target.value);
+                                          }
+                                        }}
+                                        defaultValue=""
+                                        className="delegation-select select-rider"
+                                      >
+                                        <option value="" disabled>🚴 Assign Rider...</option>
+                                        {riders.map(rider => (
+                                          <option key={rider.id} value={rider.id} disabled={rider.status === 'busy'}>
+                                            {rider.name} ({rider.status.toUpperCase()})
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  )}
+                                  {order.status === 'delivering' && (
+                                    <button 
+                                      onClick={() => handleStatusTransition(order.id, order.status)}
+                                      className="btn btn-primary next-status-btn"
+                                    >
+                                      Arrived <ChevronRight size={14} />
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                           </div>
@@ -1827,6 +2006,61 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Explicit Staff Delegation Deck */}
+              {selectedOrder.status !== 'delivered' && (
+                <div className="details-section-box mt-4 border-t pt-3">
+                  <h4>Staff Assignment Deck</h4>
+                  <div style={{ display: 'flex', gap: '15px', marginTop: '10px', alignItems: 'center' }}>
+                    {selectedOrder.status === 'preparing' && (
+                      <div style={{ flex: 1 }}>
+                        <label className="text-xs text-muted mb-1 block">Delegate a Kitchen Chef:</label>
+                        <select 
+                          onChange={(e) => handleAssignChef(selectedOrder.id, e.target.value)}
+                          defaultValue=""
+                          className="form-input text-sm"
+                          style={{ width: '100%', color: 'var(--text-primary)', background: 'var(--bg-card)' }}
+                        >
+                          <option value="" disabled>Select Chef...</option>
+                          {chefs.map(chef => (
+                            <option key={chef.id} value={chef.id} disabled={chef.status === 'busy'}>
+                              {chef.name} ({chef.status.toUpperCase()})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    
+                    {selectedOrder.status === 'cooking' && (
+                      <div style={{ flex: 1 }}>
+                        <label className="text-xs text-muted mb-1 block">Delegate a Courier Rider:</label>
+                        <select 
+                          onChange={(e) => handleAssignRider(selectedOrder.id, e.target.value)}
+                          defaultValue=""
+                          className="form-input text-sm"
+                          style={{ width: '100%', color: 'var(--text-primary)', background: 'var(--bg-card)' }}
+                        >
+                          <option value="" disabled>Select Rider...</option>
+                          {riders.map(rider => (
+                            <option key={rider.id} value={rider.id} disabled={rider.status === 'busy'}>
+                              {rider.name} ({rider.status.toUpperCase()})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {selectedOrder.status === 'delivering' && (
+                      <div style={{ flex: 1 }}>
+                        <span className="text-xs text-muted">Assigned Rider:</span>
+                        <strong style={{ display: 'block', color: 'var(--accent-green)' }}>
+                          {selectedOrder.assignedRiderName || 'Courier Rider'} (In Transit)
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="modal-footer border-t pt-3 mt-3">
