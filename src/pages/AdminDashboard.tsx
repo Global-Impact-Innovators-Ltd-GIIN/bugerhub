@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, ShoppingBag, Truck, Check, Clock, 
   MapPin, ClipboardList, Plus, ShieldCheck, LogOut, 
-  ChefHat, Bike, Eye, ChevronRight, X, Users, Lock, Settings
+  ChefHat, Bike, Eye, ChevronRight, X, Users, Lock, Settings, BarChart3
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import type { Order } from '../context/CartContext';
@@ -12,7 +12,7 @@ import {
   fetchChefs, saveChefs, removeChef, fetchRiders, saveRiders, removeRider,
   fetchUsers, saveUser, removeUser, fetchMenuCategories, 
   saveMenuCategories, removeMenuCategory, fetchMenuItems, 
-  saveMenuItem, removeMenuItem, fetchAdmins, saveAdmin
+  saveMenuItem, removeMenuItem, fetchAdmins, saveAdmin, saveOrder
 } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 
@@ -50,7 +50,50 @@ export const AdminDashboard: React.FC = () => {
   const [admins, setAdmins] = useState<any[]>([]);
   
   // Tab state
-  const [activeTab, setActiveTab] = useState<'orders' | 'chefs' | 'riders' | 'menu' | 'users' | 'access'>('orders');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'chefs' | 'riders' | 'menu' | 'users' | 'access'>('analytics');
+
+  // Analytics states
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [radarCouriers, setRadarCouriers] = useState<any[]>([]);
+
+  // Seed analytics logs and couriers on mount
+  useEffect(() => {
+    setActivityLogs([
+      { id: 1, time: '11:42 AM', type: 'system', text: 'Supabase real-time sync channel established (MTN MoMo Gateway active).' },
+      { id: 2, time: '12:05 PM', type: 'order', text: 'Order BH-827411 placed by customer@burgerhub.com (24,500 RWF via Stripe).' },
+      { id: 3, time: '12:06 PM', type: 'staff', text: 'Chef Aimable bound to Order BH-827411. Status set to cooking.' },
+      { id: 4, time: '12:15 PM', type: 'promo', text: 'Promo code WELCOME5000 successfully applied for Order BH-940251.' },
+      { id: 5, time: '12:20 PM', type: 'loyalty', text: 'Customer redeemed 2,500 BurgerCoins (Savings: 2,500 RWF).' },
+      { id: 6, time: '12:30 PM', type: 'order', text: 'Order BH-940251 dispatched. Rider Jean-Paul bound for Nyarugenge District.' }
+    ]);
+
+    setRadarCouriers([
+      { id: 'RC-1', name: 'Rider Jean-Paul', x: 120, y: 80, speed: 28, status: 'delivering', path: 'MTN Road' },
+      { id: 'RC-2', name: 'Rider Pierre', x: 280, y: 140, speed: 0, status: 'idle', path: 'Nyarugenge Central' },
+      { id: 'RC-3', name: 'Rider Olivier', x: 390, y: 60, speed: 35, status: 'delivering', path: 'Kigali City Mall' }
+    ]);
+  }, []);
+
+  // Animate mock couriers on the logistics radar
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRadarCouriers(prev => 
+        prev.map(c => {
+          if (c.status === 'idle') return c;
+          const newX = c.x + (Math.random() > 0.5 ? 6 : -6);
+          const newY = c.y + (Math.random() > 0.5 ? 4 : -4);
+          return {
+            ...c,
+            x: Math.max(50, Math.min(450, newX)),
+            y: Math.max(35, Math.min(165, newY)),
+            speed: Math.round(25 + Math.random() * 15)
+          };
+        })
+      );
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // System Overrides State
   const [systemLockout, setSystemLockout] = useState(false);
@@ -481,6 +524,127 @@ export const AdminDashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [showRiderMapOrder]);
 
+  const handleInjectDemoOrder = async () => {
+    let selectedItemsList: any[] = [];
+    const EXCHANGE_RATE = 1300;
+    
+    const defaultMockItems = [
+      { id: 'triple-threat-burger', name: 'Triple Threat Burger', price: 16250 / EXCHANGE_RATE, image: '/images/triple_threat_burger.png', category: 'burgers', description: 'Three flame-grilled patties.' },
+      { id: 'loaded-animal-fries', name: 'Loaded Animal Fries', price: 8450 / EXCHANGE_RATE, image: '/images/loaded_animal_fries.png', category: 'sides', description: 'Crispy fries with toppings.' },
+      { id: 'spicy-chicken-deluxe', name: 'Spicy Chicken Deluxe', price: 12987 / EXCHANGE_RATE, image: '/images/spicy_chicken_deluxe.png', category: 'burgers', description: 'Spicy chicken breast fillet.' }
+    ];
+
+    const sourceItems = menuItems.length > 0 ? menuItems : defaultMockItems;
+    const itemCount = Math.floor(Math.random() * 2) + 1;
+
+    let subtotal = 0;
+    for (let i = 0; i < itemCount; i++) {
+      const baseItem = sourceItems[Math.floor(Math.random() * sourceItems.length)];
+      const isBurger = baseItem.category === 'burgers';
+      const customizations = {
+        bun: isBurger ? (Math.random() > 0.5 ? 'Brioche' : 'Sesame') : undefined,
+        doneness: isBurger ? (Math.random() > 0.5 ? 'Medium Well' : 'Well Done') : undefined,
+        extras: isBurger && Math.random() > 0.5 ? [{ name: 'Extra Cheddar', price: 1500 / EXCHANGE_RATE }] : [],
+        sauces: ['House Secret Sauce'],
+        notes: Math.random() > 0.7 ? 'No onions please' : undefined
+      };
+      
+      const extrasPrice = customizations.extras.reduce((acc, curr) => acc + curr.price, 0);
+      const totalPrice = baseItem.price + extrasPrice;
+      const quantity = Math.floor(Math.random() * 2) + 1;
+
+      selectedItemsList.push({
+        id: baseItem.id + '-' + Math.floor(100 + Math.random() * 900),
+        menuId: baseItem.id,
+        name: baseItem.name,
+        basePrice: baseItem.price,
+        totalPrice: totalPrice,
+        image: baseItem.image || '/images/hero_burger.png',
+        customizations: customizations,
+        quantity: quantity
+      });
+      subtotal += totalPrice * quantity;
+    }
+
+    const tax = subtotal * 0.08;
+    const isPickup = Math.random() > 0.5;
+    const deliveryFee = isPickup ? 0 : 3990 / EXCHANGE_RATE;
+    const total = subtotal + tax + deliveryFee;
+
+    const customers = [
+      { name: 'Kevine Murenzi', email: 'kevine.m@gmail.com', phone: '+250788123456', address: 'KN 82 St, Nyarugenge District, Kigali', city: 'Nyarugenge District, Rwanda', zipCode: '250' },
+      { name: 'David Nshuti', email: 'david.nshuti@yahoo.fr', phone: '+250785987654', address: 'KG 11 Ave, Gasabo District, Kigali', city: 'Gasabo District, Rwanda', zipCode: '250' },
+      { name: 'Ange Uwase', email: 'ange.uwase@gmail.com', phone: '+250783111222', address: 'KK 312 St, Kicukiro District, Kigali', city: 'Kicukiro District, Rwanda', zipCode: '250' }
+    ];
+    const customer = customers[Math.floor(Math.random() * customers.length)];
+
+    const paymentMethods: ('stripe' | 'cash' | 'momo')[] = ['stripe', 'momo', 'cash'];
+    const selectedPay = paymentMethods[Math.floor(Math.random() * paymentMethods.length)];
+    const orderId = 'BH-' + Math.floor(100000 + Math.random() * 900000);
+
+    const mockOrder: Order = {
+      id: orderId,
+      date: new Date().toLocaleString(),
+      items: selectedItemsList,
+      subtotal,
+      tax,
+      deliveryFee,
+      total,
+      details: {
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        address: customer.address,
+        city: customer.city,
+        zipCode: customer.zipCode,
+        deliveryMethod: isPickup ? 'pickup' : 'delivery',
+        paymentMethod: selectedPay,
+        cardNumberMuted: selectedPay === 'stripe' ? '•••• •••• •••• ' + Math.floor(1000 + Math.random() * 9000) : undefined,
+        momoProvider: selectedPay === 'momo' ? (Math.random() > 0.5 ? 'mtn' : 'airtel') : undefined,
+        momoPhone: selectedPay === 'momo' ? '078' + Math.floor(1000000 + Math.random() * 9000000) : undefined,
+        currency: 'RWF',
+        couponApplied: Math.random() > 0.7 ? 'WELCOME5000' : undefined,
+        couponDiscount: 0,
+        coinsRedeemed: 0,
+        coinsDiscount: 0
+      },
+      status: 'preparing'
+    };
+
+    try {
+      await saveOrder(mockOrder);
+      
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const newLog = {
+        id: Date.now(),
+        time: timeStr,
+        type: 'order',
+        text: `Demo order ${orderId} injected: ${customer.name} (${Math.round(total * EXCHANGE_RATE).toLocaleString()} RWF via ${selectedPay.toUpperCase()}).`
+      };
+      setActivityLogs(prev => [newLog, ...prev]);
+
+      if (autoAssignment) {
+        setTimeout(async () => {
+          const freshChefs = await fetchChefs();
+          const idleChef = freshChefs.find((c: any) => c.status === 'idle');
+          if (idleChef) {
+            const timeStr2 = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const chefLog = {
+              id: Date.now() + 1,
+              time: timeStr2,
+              type: 'staff',
+              text: `Chef ${idleChef.name} auto-assigned to Order ${orderId}. Status: cooking.`
+            };
+            setActivityLogs(prev => [chefLog, ...prev]);
+          }
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('Error injecting demo order:', err);
+      alert('Failed to save demo order to database.');
+    }
+  };
+
   // Calculations for stats widgets
   const EXCHANGE_RATE = 1300;
   const totalRevenueUSD = orders.reduce((acc, order) => acc + order.total, 0);
@@ -517,6 +681,12 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <nav className="admin-sidebar-menu">
+          <button 
+            className={`admin-sidebar-item ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+          >
+            <BarChart3 size={16} /> System Analytics
+          </button>
           <button 
             className={`admin-sidebar-item ${activeTab === 'orders' ? 'active' : ''}`}
             onClick={() => setActiveTab('orders')}
@@ -611,6 +781,257 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Tab 0: System Analytics Dashboard (Default View) */}
+        {activeTab === 'analytics' && (
+          <div className="analytics-section animate-fade-in">
+            <div className="analytics-header mb-4">
+              <h3 className="section-title text-gradient">System Operations Analytics</h3>
+              <div className="live-sync-indicator">
+                <span className="pulse-beacon"></span>
+                <span className="sync-text">Supabase Realtime Sync Active</span>
+              </div>
+            </div>
+
+            {/* Grid layout for Charts and Radar */}
+            <div className="analytics-grid">
+              
+              {/* Row 1, Left Column: Sales Trend & Top Products */}
+              <div className="analytics-left-col">
+                {/* Revenue Trend SVG Line Chart */}
+                <div className="analytics-card card">
+                  <div className="card-header">
+                    <h4>Revenue Trend (Last 7 Days)</h4>
+                    <span className="text-xs text-muted">MTN MoMo & Stripe Consolidated</span>
+                  </div>
+                  <div className="chart-container">
+                    <svg className="line-chart-svg" viewBox="0 0 500 200">
+                      <defs>
+                        <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.4" />
+                          <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.0" />
+                        </linearGradient>
+                        <filter id="neonShadow" x="-10%" y="-10%" width="120%" height="120%">
+                          <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="var(--primary)" floodOpacity="0.6" />
+                        </filter>
+                      </defs>
+                      
+                      {/* Grid Lines */}
+                      <line x1="40" y1="30" x2="480" y2="30" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                      <line x1="40" y1="70" x2="480" y2="70" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                      <line x1="40" y1="110" x2="480" y2="110" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                      <line x1="40" y1="150" x2="480" y2="150" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                      
+                      {/* X/Y Axis */}
+                      <line x1="40" y1="170" x2="480" y2="170" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+                      <line x1="40" y1="20" x2="40" y2="170" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+
+                      {/* Area Under Curve */}
+                      <path 
+                        d="M 40,170 Q 100,120 160,150 T 280,70 T 400,60 T 480,40 L 480,170 Z" 
+                        fill="url(#chartGlow)" 
+                      />
+
+                      {/* Spark Line */}
+                      <path 
+                        d="M 40,170 Q 100,120 160,150 T 280,70 T 400,60 T 480,40" 
+                        fill="none" 
+                        stroke="var(--primary)" 
+                        strokeWidth="3.5" 
+                        strokeLinecap="round"
+                        filter="url(#neonShadow)" 
+                      />
+
+                      {/* Interactive Data Dots */}
+                      <circle cx="100" cy="135" r="4.5" fill="var(--secondary)" stroke="var(--bg-card)" strokeWidth="2" />
+                      <circle cx="160" cy="150" r="4.5" fill="var(--secondary)" stroke="var(--bg-card)" strokeWidth="2" />
+                      <circle cx="220" cy="110" r="4.5" fill="var(--secondary)" stroke="var(--bg-card)" strokeWidth="2" />
+                      <circle cx="280" cy="70" r="4.5" fill="var(--secondary)" stroke="var(--bg-card)" strokeWidth="2" />
+                      <circle cx="340" cy="65" r="4.5" fill="var(--secondary)" stroke="var(--bg-card)" strokeWidth="2" />
+                      <circle cx="400" cy="60" r="4.5" fill="var(--secondary)" stroke="var(--bg-card)" strokeWidth="2" />
+                      <circle cx="480" cy="40" r="4.5" fill="var(--primary)" stroke="var(--bg-card)" strokeWidth="2" />
+
+                      {/* Label values */}
+                      <text x="35" y="175" fill="var(--text-secondary)" fontSize="9" textAnchor="end">0</text>
+                      <text x="35" y="153" fill="var(--text-secondary)" fontSize="9" textAnchor="end">100k</text>
+                      <text x="35" y="113" fill="var(--text-secondary)" fontSize="9" textAnchor="end">250k</text>
+                      <text x="35" y="73" fill="var(--text-secondary)" fontSize="9" textAnchor="end">400k</text>
+                      <text x="35" y="33" fill="var(--text-secondary)" fontSize="9" textAnchor="end">550k</text>
+
+                      <text x="100" y="185" fill="var(--text-secondary)" fontSize="9" textAnchor="middle">Mon</text>
+                      <text x="160" y="185" fill="var(--text-secondary)" fontSize="9" textAnchor="middle">Tue</text>
+                      <text x="220" y="185" fill="var(--text-secondary)" fontSize="9" textAnchor="middle">Wed</text>
+                      <text x="280" y="185" fill="var(--text-secondary)" fontSize="9" textAnchor="middle">Thu</text>
+                      <text x="340" y="185" fill="var(--text-secondary)" fontSize="9" textAnchor="middle">Fri</text>
+                      <text x="400" y="185" fill="var(--text-secondary)" fontSize="9" textAnchor="middle">Sat</text>
+                      <text x="480" y="185" fill="var(--text-secondary)" fontSize="9" textAnchor="middle">Sun</text>
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Top Product Performance */}
+                <div className="analytics-card card mt-4">
+                  <div className="card-header">
+                    <h4>Top Product Volume (Units)</h4>
+                    <span className="text-xs text-muted">Weekly aggregated statistics</span>
+                  </div>
+                  <div className="products-volume-list mt-3">
+                    {[
+                      { name: 'Triple Threat Burger', count: 184, percent: 92, color: 'var(--primary)' },
+                      { name: 'Loaded Animal Fries', count: 142, percent: 71, color: 'var(--secondary)' },
+                      { name: 'Spicy Chicken Deluxe', count: 118, percent: 59, color: 'var(--accent-blue)' },
+                      { name: 'Mango Passion Smoothie', count: 86, percent: 43, color: 'var(--accent-green)' }
+                    ].map(prod => (
+                      <div className="volume-item mb-3" key={prod.name}>
+                        <div className="volume-label-row">
+                          <span className="volume-name">{prod.name}</span>
+                          <span className="volume-value">{prod.count} units sold</span>
+                        </div>
+                        <div className="progress-track">
+                          <div 
+                            className="progress-fill" 
+                            style={{ 
+                              width: `${prod.percent}%`,
+                              background: prod.color
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 1, Right Column: Logistics Radar & Operations Controller */}
+              <div className="analytics-right-col">
+                {/* Logistics Radar Tracker */}
+                <div className="analytics-card card">
+                  <div className="card-header">
+                    <h4>Kigali Logistics Radar (Nyarugenge District)</h4>
+                    <span className="text-xs text-muted">Simulating Rider coordinates walkpaths</span>
+                  </div>
+                  
+                  <div className="radar-screen-container mt-3">
+                    <svg viewBox="0 0 500 200" className="radar-grid-svg">
+                      <defs>
+                        <radialGradient id="radarSweep" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.15" />
+                          <stop offset="85%" stopColor="var(--primary)" stopOpacity="0.05" />
+                          <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.0" />
+                        </radialGradient>
+                      </defs>
+                      
+                      {/* Grid circles */}
+                      <circle cx="250" cy="100" r="90" fill="none" stroke="rgba(255, 69, 0, 0.08)" strokeWidth="1" />
+                      <circle cx="250" cy="100" r="60" fill="none" stroke="rgba(255, 69, 0, 0.08)" strokeWidth="1" />
+                      <circle cx="250" cy="100" r="30" fill="none" stroke="rgba(255, 69, 0, 0.08)" strokeWidth="1" />
+                      
+                      {/* Radar sweeps */}
+                      <line x1="250" y1="10" x2="250" y2="190" stroke="rgba(255, 69, 0, 0.1)" strokeWidth="0.75" />
+                      <line x1="20" y1="100" x2="480" y2="100" stroke="rgba(255, 69, 0, 0.1)" strokeWidth="0.75" />
+                      
+                      {/* Scanning sweep beam */}
+                      <circle cx="250" cy="100" r="90" fill="url(#radarSweep)" className="radar-sweep-beam" />
+                      
+                      {/* Plot couriers */}
+                      {radarCouriers.map(courier => (
+                        <g key={courier.id} transform={`translate(${courier.x}, ${courier.y})`}>
+                          <circle r="7" fill={courier.status === 'idle' ? 'var(--text-secondary)' : 'var(--primary)'} className="radar-ping-dot" />
+                          <circle r="15" fill="none" stroke={courier.status === 'idle' ? 'var(--text-secondary)' : 'var(--primary)'} strokeWidth="1" className="radar-ping-wave" />
+                          <text y="-10" textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                            {courier.name} ({courier.speed} km/h)
+                          </text>
+                        </g>
+                      ))}
+                    </svg>
+                  </div>
+
+                  <div className="radar-couriers-legend mt-2">
+                    {radarCouriers.map(c => (
+                      <div className="legend-item" key={c.id}>
+                        <span className={`status-dot ${c.status === 'idle' ? 'bg-muted' : 'bg-orange'}`}></span>
+                        <span className="text-xs">{c.name}: <strong>{c.path}</strong> ({c.status})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Database Operations & Mock Injector */}
+                <div className="analytics-card card mt-4">
+                  <div className="card-header">
+                    <h4>Operations Command Deck</h4>
+                    <span className="text-xs text-muted">Direct mock integrations</span>
+                  </div>
+                  
+                  <div className="ops-deck-actions mt-3">
+                    <button onClick={handleInjectDemoOrder} className="btn btn-primary inject-btn w-full py-3 mb-2 font-semibold">
+                      ⚡ Inject Demo Order to Supabase
+                    </button>
+                    <p className="text-xs text-muted text-center mt-1">
+                      Instantly writes a randomized 3-item guest order to the Postgres database.
+                      The page's state sync interval will pull the entry into active pipelines.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Bottom Row: Payment Breakdown & Live Activity Stream */}
+            <div className="analytics-bottom-row mt-4">
+              
+              {/* Payment Methods and Channels */}
+              <div className="analytics-card card">
+                <div className="card-header">
+                  <h4>Billing & Secure Channels (Share)</h4>
+                  <span className="text-xs text-muted">Consolidated transaction metrics</span>
+                </div>
+                
+                <div className="payment-breakdown mt-4">
+                  <div className="donut-and-legend">
+                    {/* Visual Meter */}
+                    <div className="breakdown-bars">
+                      {[
+                        { label: 'MTN Mobile Money (MoMo)', value: '62%', valNum: 62, color: 'var(--primary)' },
+                        { label: 'Credit/Debit Card (Stripe)', value: '26%', valNum: 26, color: 'var(--secondary)' },
+                        { label: 'Cash on Hand (Delivery)', value: '12%', valNum: 12, color: 'var(--text-secondary)' }
+                      ].map(item => (
+                        <div className="breakdown-bar-item mb-3" key={item.label}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span className="text-xs">{item.label}</span>
+                            <span className="text-xs font-semibold">{item.value}</span>
+                          </div>
+                          <div className="meter-track">
+                            <div className="meter-fill" style={{ width: `${item.valNum}%`, background: item.color }}></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Real-time audit activity log */}
+              <div className="analytics-card card">
+                <div className="card-header">
+                  <h4>Real-Time Operations Audit Feed</h4>
+                  <span className="text-xs text-muted">Live Postgres database sync streams</span>
+                </div>
+                
+                <div className="audit-feed-wrapper mt-3">
+                  {activityLogs.map(log => (
+                    <div className="audit-log-item" key={log.id}>
+                      <span className="audit-log-time">[{log.time}]</span>
+                      <span className={`audit-log-type type-${log.type}`}>{log.type.toUpperCase()}:</span>
+                      <span className="audit-log-text">{log.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
 
         {/* Tab 1: Live Orders Kanban Queue */}
         {activeTab === 'orders' && (
