@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bike, LogOut, Clock, Check, Eye, MapPin, Phone, AlertCircle, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import type { Order } from '../context/CartContext';
-import { fetchRiders } from '../utils/supabaseDb';
+import { fetchRiders, saveOrder } from '../utils/supabaseDb';
 import '../styles/pages/AdminDashboard.css';
 import '../styles/pages/StaffPortals.css';
 
@@ -14,6 +14,22 @@ export const RiderDashboard: React.FC = () => {
   
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [mapProgress, setMapProgress] = useState(0);
+  const [localRiderPos, setLocalRiderPos] = useState<{ x: number; y: number } | null>(null);
+
+  const availableQueue = orders.filter(o => o.status === 'delivering' && !o.assignedRiderId);
+  const myCurrentOrder = orders.find(o => o.id === rider?.assignedOrderId);
+  const myHistory = orders.filter(o => o.assignedRiderId === rider?.id && o.status === 'delivered');
+
+  useEffect(() => {
+    if (myCurrentOrder) {
+      setLocalRiderPos({
+        x: myCurrentOrder.details.riderX ?? 100,
+        y: myCurrentOrder.details.riderY ?? 40
+      });
+    } else {
+      setLocalRiderPos(null);
+    }
+  }, [myCurrentOrder?.id, myCurrentOrder?.details.riderX, myCurrentOrder?.details.riderY]);
 
   useEffect(() => {
     const session = sessionStorage.getItem('burgerhub_active_rider') || localStorage.getItem('burgerhub_active_rider');
@@ -77,15 +93,56 @@ export const RiderDashboard: React.FC = () => {
     if (!rider) return;
     completeDeliveryOrder(orderId, rider.id);
     setMapProgress(0);
+    setLocalRiderPos(null);
     alert('Delivery completed successfully! Great job.');
+  };
+
+  const handleMapClick = async (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!myCurrentOrder) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.round(((e.clientX - rect.left) / rect.width) * 500);
+    const y = Math.round(((e.clientY - rect.top) / rect.height) * 200);
+
+    setLocalRiderPos({ x, y });
+
+    const updatedOrder = {
+      ...myCurrentOrder,
+      details: {
+        ...myCurrentOrder.details,
+        riderX: x,
+        riderY: y
+      }
+    };
+
+    try {
+      await saveOrder(updatedOrder);
+      
+      // Play a synthesized success audio feedback chime
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+          osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.08); // A5
+          gain.gain.setValueAtTime(0.04, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.2);
+        }
+      } catch (err) {}
+    } catch (err) {
+      console.error('Failed to pin location:', err);
+    }
   };
 
   if (!rider) return null;
 
-  // Available deliveries: status is 'delivering' and no rider is assigned yet
-  const availableQueue = orders.filter(o => o.status === 'delivering' && !o.assignedRiderId);
-  const myCurrentOrder = orders.find(o => o.id === rider.assignedOrderId);
-  const myHistory = orders.filter(o => o.assignedRiderId === rider.id && o.status === 'delivered');
+  // Local variables declared above for component state integration
 
   return (
     <div className="admin-dashboard-page staff-dashboard-page rider-dashboard animate-fade-in">
@@ -155,13 +212,14 @@ export const RiderDashboard: React.FC = () => {
 
                 {/* Simulated Transit Map */}
                 <div className="rider-transit-map mt-4">
-                  <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <MapPin size={18} className="color-primary" />
-                    Kigali Route Progress ({mapProgress}%)
+                    Share Live GPS Location {localRiderPos ? `(Coordinates Pinned)` : `(${mapProgress}%)`}
                   </h4>
+                  <p className="text-xs text-muted mb-3">📍 Tap Metropolitan Grid to Pin GPS: Click anywhere on the map paths to update the customer's live tracking screen in real time.</p>
 
                   <div className="transit-map-canvas-container card" style={{ height: '200px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
-                    <svg viewBox="0 0 500 200" className="map-svg">
+                    <svg viewBox="0 0 500 200" className="map-svg" onClick={handleMapClick} style={{ cursor: 'crosshair' }}>
                       {/* Roads grid */}
                       <path d="M 20,40 L 480,40 M 20,100 L 480,100 M 20,160 L 480,160 M 100,10 L 100,190 M 250,10 L 250,190 M 400,10 L 400,190" stroke="#27272a" strokeWidth="4" strokeLinecap="round" strokeDasharray="1 10" />
                       
@@ -185,10 +243,20 @@ export const RiderDashboard: React.FC = () => {
                         <circle r="8" fill="var(--accent-green)" />
                         <text y="20" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontWeight="bold">Recipient Pin</text>
                       </g>
+
+                      {/* GPS Target Crosshair */}
+                      {localRiderPos && (
+                        <>
+                          <line x1="0" y1={localRiderPos.y} x2="500" y2={localRiderPos.y} stroke="rgba(255, 69, 0, 0.25)" strokeWidth="1" strokeDasharray="3 3" />
+                          <line x1={localRiderPos.x} y1="0" x2={localRiderPos.x} y2="200" stroke="rgba(255, 69, 0, 0.25)" strokeWidth="1" strokeDasharray="3 3" />
+                        </>
+                      )}
                       
                       {/* Rider Dot */}
                       <g style={{
-                        transform: mapProgress < 33 
+                        transform: localRiderPos
+                          ? `translate(${localRiderPos.x}px, ${localRiderPos.y}px)`
+                          : mapProgress < 33 
                           ? `translate(${100 + (mapProgress / 33) * 150}px, 40px)` 
                           : mapProgress < 66
                           ? `translate(250px, ${40 + ((mapProgress - 33) / 33) * 60}px)`

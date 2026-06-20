@@ -226,6 +226,9 @@ export const OrderTracking: React.FC = () => {
   }
 
   const isDelivery = activeOrder.details.deliveryMethod === 'delivery';
+  const riderX = activeOrder.details.riderX;
+  const riderY = activeOrder.details.riderY;
+  const hasLiveLocation = riderX !== undefined && riderY !== undefined;
 
   // Status mapping
   const statuses = [
@@ -376,27 +379,52 @@ export const OrderTracking: React.FC = () => {
                         <text y="20" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontWeight="bold">Delivery Pin</text>
                       </g>
                       
+                      {/* GPS Target Crosshair for Live Location */}
+                      {hasLiveLocation && activeOrder.status !== 'delivered' && (
+                        <>
+                          <line x1="0" y1={riderY} x2="500" y2={riderY} stroke="rgba(59, 130, 246, 0.25)" strokeWidth="1" strokeDasharray="3 3" />
+                          <line x1={riderX} y1="0" x2={riderX} y2="200" stroke="rgba(59, 130, 246, 0.25)" strokeWidth="1" strokeDasharray="3 3" />
+                        </>
+                      )}
+
                       {/* Courier Motion path simulation */}
                       {activeOrder.status !== 'delivered' && (
                         <g className="courier-rider-element" style={{
-                          transform: activeOrder.status === 'preparing' 
+                          transform: hasLiveLocation
+                            ? `translate(${riderX}px, ${riderY}px)`
+                            : activeOrder.status === 'preparing' 
                             ? 'translate(100px, 40px)' 
                             : activeOrder.status === 'cooking'
                             ? 'translate(180px, 40px)'
                             : 'translate(310px, 100px)'
                         }}>
-                          <circle r="12" fill="var(--primary)" className="courier-glow" />
+                          <circle r="12" fill={hasLiveLocation ? "#3b82f6" : "var(--primary)"} className="courier-glow" style={{ filter: hasLiveLocation ? 'drop-shadow(0 0 10px #3b82f6)' : undefined }} />
+                          {hasLiveLocation && (
+                            <circle r="20" fill="none" stroke="#3b82f6" strokeWidth="1.5" className="radar-ping-wave" />
+                          )}
                           <Bike size={14} className="rider-bike-icon" transform="scale(0.8) translate(-4, -4)" />
                         </g>
                       )}
                     </svg>
+                    {hasLiveLocation && activeOrder.status !== 'delivered' && (
+                      <div className="live-tracking-active-banner">
+                        <span className="live-tracking-beacon"></span>
+                        <span>🛰️ Live Satellite Tracking Active: {activeOrder.assignedRiderName || 'Rider'} has pinned their live delivery location.</span>
+                      </div>
+                    )}
                     <div className="map-overlay-details">
-                      <Bike size={16} className="color-primary animate-float" />
+                      <Bike size={16} className={hasLiveLocation ? "color-blue animate-float" : "color-primary animate-float"} style={{ color: hasLiveLocation ? '#3b82f6' : undefined }} />
                       <span>
-                        {activeOrder.status === 'preparing' && 'Kitchen processing your MoMo order'}
-                        {activeOrder.status === 'cooking' && 'Food cooking. Rider prepping courier pack'}
-                        {activeOrder.status === 'delivering' && 'Courier navigating Kigali streets to your pin'}
-                        {activeOrder.status === 'delivered' && 'Courier arrived! Package delivered! Enjoy!'}
+                        {activeOrder.status === 'delivered'
+                          ? 'Courier arrived! Package delivered! Enjoy!'
+                          : hasLiveLocation
+                          ? `Courier is actively navigating to your coordinates (GPS Pin: ${riderX}, ${riderY})`
+                          : activeOrder.status === 'preparing'
+                          ? 'Kitchen processing your MoMo order'
+                          : activeOrder.status === 'cooking'
+                          ? 'Food cooking. Rider prepping courier pack'
+                          : 'Courier navigating Kigali streets to your pin'
+                        }
                       </span>
                     </div>
                   </div>

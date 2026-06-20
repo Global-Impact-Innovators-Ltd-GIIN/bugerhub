@@ -37,6 +37,8 @@ export interface CheckoutDetails {
   couponDiscount?: number;
   coinsRedeemed?: number;
   coinsDiscount?: number;
+  riderX?: number;
+  riderY?: number;
 }
 
 export interface Order {
@@ -105,12 +107,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const dbOrders = await fetchOrders();
       setOrders(dbOrders);
       
-      // Update activeOrder if its status has changed in the database
+      // Update activeOrder if its status or details have changed in the database
       setActiveOrder(prevActive => {
         if (!prevActive) return null;
         const matching = dbOrders.find(o => o.id === prevActive.id);
-        if (matching && matching.status !== prevActive.status) {
-          return { ...prevActive, status: matching.status };
+        if (matching) {
+          if (
+            matching.status !== prevActive.status ||
+            JSON.stringify(matching.details) !== JSON.stringify(prevActive.details)
+          ) {
+            return matching;
+          }
         }
         return prevActive;
       });
