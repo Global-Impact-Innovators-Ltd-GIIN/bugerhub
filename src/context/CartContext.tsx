@@ -71,6 +71,7 @@ interface CartContextType {
   placeOrder: (details: CheckoutDetails) => Order;
   updateOrderStatus: (status: Order['status']) => void;
   clearActiveOrder: () => void;
+  trackOrder: (order: Order) => void;
   orders: Order[];
   updateOrderStatusInHistory: (orderId: string, status: Order['status']) => void;
   assignChefToOrder: (orderId: string, chefId: string, chefName: string) => void;
@@ -367,6 +368,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveOrder(null);
   };
 
+  const trackOrder = (order: Order) => {
+    setActiveOrder(order);
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -383,6 +388,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         placeOrder,
         updateOrderStatus,
         clearActiveOrder,
+        trackOrder,
         orders,
         updateOrderStatusInHistory,
         assignChefToOrder,
