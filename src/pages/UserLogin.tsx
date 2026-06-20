@@ -51,6 +51,9 @@ export const UserLogin: React.FC = () => {
 
     // 1. Check Admin Credentials
     const admins = await fetchAdmins();
+    const demoAdmin = { email: 'admin@burgerhub.com', password: 'admin123', name: 'System Admin' };
+    if (!admins.some((a: any) => a.email === demoAdmin.email)) admins.push(demoAdmin);
+
     const matchedAdmin = admins.find((a: any) => a.email.toLowerCase() === trimmedEmail && a.password === password);
 
     if (matchedAdmin) {
@@ -79,6 +82,9 @@ export const UserLogin: React.FC = () => {
 
     // 2. Check Chef Credentials
     const chefs = await fetchChefs();
+    const demoChef = { email: 'chef1@burgerhub.com', password: 'chef123', name: 'Head Chef', role: 'chef' };
+    if (!chefs.some((c: any) => c.email === demoChef.email)) chefs.push(demoChef);
+
     const matchedChef = chefs.find((c: any) => c.email.toLowerCase() === trimmedEmail && c.password === password);
 
     if (matchedChef) {
@@ -107,6 +113,9 @@ export const UserLogin: React.FC = () => {
 
     // 3. Check Rider Credentials
     const riders = await fetchRiders();
+    const demoRider = { email: 'rider1@burgerhub.com', password: 'rider123', name: 'Fast Rider', role: 'rider' };
+    if (!riders.some((r: any) => r.email === demoRider.email)) riders.push(demoRider);
+
     const matchedRider = riders.find((r: any) => r.email.toLowerCase() === trimmedEmail && r.password === password);
 
     if (matchedRider) {
@@ -135,6 +144,9 @@ export const UserLogin: React.FC = () => {
 
     // 4. Check Customer/User Credentials
     const users = await fetchUsers();
+    const demoUser = { id: 'demo-user-1', email: 'customer@burgerhub.com', password: 'customer123', name: 'Demo Customer', phone: '0780000000', address: 'Kigali', city: 'Kigali' };
+    if (!users.some((u: any) => u.email === demoUser.email)) users.push(demoUser);
+
     const matchedUser = users.find((u: any) => u.email.toLowerCase() === trimmedEmail && u.password === password);
 
     if (matchedUser) {
